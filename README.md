@@ -14,10 +14,11 @@ Copyright (c) 2026 PaceStreak. Licensed under [AGPL-3.0](./LICENSE).
 
 | Hostname | Serves | Source | Platform |
 | --- | --- | --- | --- |
-| `www.pacestreak.com` | Landing page (**canonical**) | [`landing`](https://github.com/PaceStreak/landing) | Cloudflare Pages |
+| `www.pacestreak.com` | Public site (**canonical**) | [`web`](https://github.com/PaceStreak/web) | Cloudflare Pages |
 | `pacestreak.com` | 301 → `www` | Redirect Rule | Cloudflare |
 | `blog.pacestreak.com` | Build log | [`blog`](https://github.com/PaceStreak/blog) | Cloudflare Pages |
 | `status.pacestreak.com` | Public status page | [`status`](https://github.com/PaceStreak/status) | GitHub Pages |
+| `app.pacestreak.com` | The product (**not built**) | [`app`](https://github.com/PaceStreak/app) | — |
 | `api.pacestreak.com` | Backend (**not built**) | [`api`](https://github.com/PaceStreak/api) | — |
 
 Mail is Zoho: `MX`, SPF, DKIM (`zmail._domainkey`) and DMARC records on the
@@ -41,7 +42,9 @@ Four things account for most of the surprises here:
 
 1. **A proxied DNS record with nothing behind it returns `522`, which is worse
    than no record at all.** Before, the hostname does not exist; after, it
-   serves a Cloudflare error page that reads as "this product is broken".
+   serves a Cloudflare error page that reads as "this product is broken". This
+   is why `app` and `api` have no records yet, and why they should be created
+   by attaching a custom domain to a deployment rather than by hand.
 2. **Cloudflare Pages issues a separate certificate per custom domain.** The
    apex and `www` certificates have different SAN lists and different expiry
    dates. One check cannot cover both, which is why the status page monitors

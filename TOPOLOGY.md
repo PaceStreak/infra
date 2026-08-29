@@ -8,7 +8,7 @@ Zone: **`pacestreak.com`**, on Cloudflare (free plan). Nameservers
 | Name | Type | Content | Proxy | Why |
 | --- | --- | --- | --- | --- |
 | `pacestreak.com` | CNAME | `pacestreak.pages.dev` | Proxied | Must resolve so the redirect rule can fire. The target is never fetched — the rule answers at the edge first. |
-| `www` | CNAME | `pacestreak.pages.dev` | Proxied | Canonical site. |
+| `www` | CNAME | `pacestreak.pages.dev` | Proxied | Canonical public site. |
 | `blog` | CNAME | `pacestreak-blog.pages.dev` | Proxied | Blog. |
 | `status` | CNAME | `pacestreak.github.io` | **DNS only** | GitHub Pages must validate the domain to issue its certificate; it cannot do that through Cloudflare's proxy. |
 | `pacestreak.com` | MX ×3 | `mx.zoho.in`, `mx2`, `mx3` | DNS only | Mail. |
@@ -54,11 +54,22 @@ Pages project that does not recognise `pacestreak.com` as a custom domain.
 
 | Project | Repo | Branch | Build | Output |
 | --- | --- | --- | --- | --- |
-| `pacestreak` | `PaceStreak/landing` | `main` | `npm run build` | `dist` |
+| `pacestreak` | `PaceStreak/web` | `main` | `npm run build` | `dist` |
 | `pacestreak-blog` | `PaceStreak/blog` | `main` | `npm run build` | `dist` |
 
 Both are **Git-connected**, so a push deploys. Neither needs a Cloudflare API
 token any more.
+
+### Not yet created
+
+`app.pacestreak.com` and `api.pacestreak.com` have **no DNS records**, and that
+is deliberate. Create them by attaching the custom domain to a real deployment,
+which lets Cloudflare write the record — never by hand in the DNS tab. A
+proxied record pointing at nothing returns `522`, which looks to a visitor like
+a broken product rather than an unlaunched one.
+
+When `app` is created it becomes a third Pages project (`pacestreak-app`,
+Git-connected to `PaceStreak/app`) and a fourth proxied CNAME.
 
 > A direct-upload project **can** be connected to a repository afterwards —
 > Cloudflare supports it from the project's Settings. What it cannot do is

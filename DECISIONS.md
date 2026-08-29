@@ -29,7 +29,7 @@ tags, `og:url`, sitemaps and the status monitors.
 
 **Date:** 2026-08-28 · **Status:** decided, **irreversible for published code**
 
-`landing`, `blog`, `web` and `api` are AGPL-3.0. `status` remains MIT because it
+`web`, `app`, `blog`, `api` and `infra` are AGPL-3.0. `status` remains MIT because it
 is largely upstream Upptime code, which is MIT — relicensing someone else's work
 is not ours to do. `.github` is MIT because templates are more useful reusable.
 
@@ -62,14 +62,14 @@ once the Git connection existed.
 
 Both sites ship `default-src 'self'`. No font CDN, no analytics, no widgets.
 
-**Why:** a status page or landing page that depends on a third-party CDN can be
+**Why:** a status page or public site that depends on a third-party CDN can be
 taken down by that CDN. It also keeps the pages at 26KB and 8KB respectively.
 
 **Enforcement:** the CSP blocks violations in the browser — silently — so
 `check-html.py` fails the build on inline scripts and `data:` URIs instead.
 
 **Cost of reversing:** low technically, but it is the reason "no tracking" can be
-claimed truthfully on the landing page.
+claimed truthfully on the public site.
 
 ---
 
@@ -83,3 +83,39 @@ authoritative while drifting.
 
 **Trigger to revisit:** a second environment, or the first time a change is made
 in the dashboard that nobody can date or explain.
+
+---
+
+## The product gets its own host, separate from the public site
+
+**Date:** 2026-08-29 · **Status:** decided, not yet implemented
+
+`www.pacestreak.com` serves only the public site
+([`web`](https://github.com/PaceStreak/web), formerly `landing`). The signed-in
+product is built in [`app`](https://github.com/PaceStreak/app) and will be
+served from `app.pacestreak.com`. The alternative — `www.pacestreak.com/app` —
+was rejected.
+
+**Why:**
+
+- **The public site must never depend on auth.** It is what a stranger sees
+  first, and what the status page reports on. An outage in the product must not
+  be able to take down the page that explains the product.
+- **Caching policies are opposite.** The public site wants long-lived edge
+  caching; signed-in responses must never reach a shared cache. Separate
+  origins make that a property of the deployment rather than a per-route rule
+  someone eventually forgets.
+- **Indexing policies are opposite.** One must be crawled, the other must be
+  `noindex`. A single origin serving both invites exactly one mistake in
+  `robots.txt` — and this organization has already shipped a `robots.txt` bug
+  once, on the blog.
+
+**What it costs:** a third Pages project, a fourth proxied CNAME, and a session
+cookie scoped `Domain=pacestreak.com` — which was already required to reach
+`api.pacestreak.com`, so the split adds no new exposure. The standing
+consequence is that **nothing untrusted may ever be hosted under
+`pacestreak.com`**.
+
+**Cost to reverse:** moderate. Merging the two back onto one origin means
+reworking cache and indexing rules per route, and unpicking whichever
+assumptions the app has made about being alone on its host.
