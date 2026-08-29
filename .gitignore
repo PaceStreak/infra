@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+# Never commit provider state or credentials, even if Terraform arrives later.
+*.tfstate
+*.tfstate.*
+.terraform/
