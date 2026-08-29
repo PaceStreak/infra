@@ -52,13 +52,34 @@ Pages project that does not recognise `pacestreak.com` as a custom domain.
 
 ## Cloudflare Pages projects
 
-| Project | Repo | Branch | Build | Output |
-| --- | --- | --- | --- | --- |
-| `pacestreak` | `PaceStreak/web` | `main` | `npm run build` | `dist` |
-| `pacestreak-blog` | `PaceStreak/blog` | `main` | `npm run build` | `dist` |
+| Project | Repo | Serves | Branch | Build | Output |
+| --- | --- | --- | --- | --- | --- |
+| `pacestreak-web` | `PaceStreak/web` | apex + `www` | `main` | `npm run build` | `dist` |
+| `pacestreak-blog` | `PaceStreak/blog` | `blog` | `main` | `npm run build` | `dist` |
 
 Both are **Git-connected**, so a push deploys. Neither needs a Cloudflare API
 token any more.
+
+### Naming
+
+**The convention is `pacestreak-<repo>`**, and both live projects follow it:
+`pacestreak-web` and `pacestreak-blog`.
+
+**A Pages project CAN be renamed, from the dashboard.** This is worth stating
+plainly because the CLI implies otherwise — `wrangler pages project` offers only
+`list`, `create` and `delete`, and the project name appears in the
+`<project>.pages.dev` hostname, which together read as "immutable". It is not.
+
+What makes it safe: **the `pages.dev` subdomain does not follow the rename.**
+`pacestreak-web` still serves `pacestreak.pages.dev`. Nothing is recreated, so
+custom domains stay attached, certificates are untouched, and the Git connection
+and deployment history survive. Renaming `pacestreak` to `pacestreak-web` caused
+no downtime and no incident on the status page.
+
+The consequence to remember is the inverse of the usual warning: the project
+name and its `pages.dev` hostname can disagree permanently, so **do not infer
+the project name from the `pages.dev` URL** — check `wrangler pages project
+list`.
 
 ### Not yet created
 
@@ -68,8 +89,9 @@ which lets Cloudflare write the record — never by hand in the DNS tab. A
 proxied record pointing at nothing returns `522`, which looks to a visitor like
 a broken product rather than an unlaunched one.
 
-When `app` is created it becomes a third Pages project (`pacestreak-app`,
-Git-connected to `PaceStreak/app`) and a fourth proxied CNAME.
+When `app` is created it becomes a third Pages project — **named
+`pacestreak-app`**, Git-connected to `PaceStreak/app` — and a fourth proxied
+CNAME.
 
 > A direct-upload project **can** be connected to a repository afterwards —
 > Cloudflare supports it from the project's Settings. What it cannot do is

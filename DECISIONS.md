@@ -119,3 +119,33 @@ consequence is that **nothing untrusted may ever be hosted under
 **Cost to reverse:** moderate. Merging the two back onto one origin means
 reworking cache and indexing rules per route, and unpicking whichever
 assumptions the app has made about being alone on its host.
+
+---
+
+## Cloudflare Pages projects are named `pacestreak-<repo>`
+
+**Date:** 2026-08-30 · **Status:** decided, implemented
+
+`pacestreak` was renamed to `pacestreak-web`. Both live projects now match the
+repository they build: `pacestreak-web`, `pacestreak-blog`. Anything created
+later follows the same rule — `pacestreak-app`, `pacestreak-api`.
+
+**This entry originally said the opposite.** It argued the names had to stay
+because a Pages project cannot be renamed, and priced the change at real
+downtime plus two certificate re-issues. That reasoning was wrong, and the
+mistake is worth keeping rather than deleting because of where it came from:
+`wrangler pages project` exposes only `list`, `create` and `delete`, and the
+name appears in the `<project>.pages.dev` hostname. Absent from the CLI plus
+apparently load-bearing in a hostname read as immutable. **The dashboard renames
+it in place.**
+
+**Why it is safe:** the `pages.dev` subdomain does not follow the rename —
+`pacestreak-web` still serves `pacestreak.pages.dev`. Nothing is recreated, so
+custom domains, certificates, the Git connection and the deployment history all
+survive untouched. The rename produced no downtime and no status page incident.
+
+**The lesson worth generalising:** absence from a CLI is evidence about the
+CLI, not about the platform. Check the dashboard or the API before concluding
+something is impossible — this is the second time that exact inference has been
+wrong here, after the direct-upload-to-Git-connected claim in
+[TOPOLOGY.md](./TOPOLOGY.md#cloudflare-pages-projects).

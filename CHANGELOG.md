@@ -5,6 +5,34 @@ Changes to infrastructure, and to the documentation of it.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Dated rather than versioned — infrastructure is continuously deployed.
 
+## 2026-08-30
+
+### Changed
+
+- **`pacestreak` renamed to `pacestreak-web`.** Both Pages projects now match
+  the repository they build. The rename was done in the Cloudflare dashboard
+  and caused no downtime: the `pages.dev` subdomain does not follow it
+  (`pacestreak-web` still serves `pacestreak.pages.dev`), so custom domains,
+  certificates, the Git connection and the deployment history were all
+  untouched.
+
+### Fixed
+
+- **A decision record that was wrong on the facts.** It claimed Pages projects
+  cannot be renamed and priced a rename at real downtime plus two certificate
+  re-issues. `wrangler pages project` exposes only `list`, `create` and
+  `delete`, and the name appears in the `pages.dev` hostname — which together
+  read as immutable. The dashboard renames in place. Rewritten, with the wrong
+  inference kept on the record: absence from a CLI is evidence about the CLI,
+  not the platform.
+
+### Added
+
+- The Pages naming convention (`pacestreak-<repo>`) in `TOPOLOGY.md`, plus the
+  warning that a project's name and its `pages.dev` hostname can disagree
+  permanently after a rename — so the project name cannot be inferred from the
+  URL.
+
 ## 2026-08-29
 
 ### Changed
