@@ -223,3 +223,28 @@ An email with an export attached, or a download link that works without a
 session, would put a person's whole history in an inbox or in the
 notifications table. The reminder links into the app, where downloading
 still needs a signed-in session.
+
+## Crash reports are self-hosted and anonymous
+
+No third-party error service: the app posts crashes to the API. Reports carry
+no account and no query string (reset links live there), are grouped by
+fingerprint, and are capped so an unauthenticated endpoint can't be flooded.
+
+## Recovery without the mailbox goes through 2FA recovery codes only
+
+Anyone who has lost both password and email needs a proof that was never in
+that mailbox. The recovery codes shown when 2FA is turned on are exactly
+that. Without 2FA there is no self-service path, by design: a support email
+is the fallback, and support must verify ownership by hand.
+
+## Terms have a version, and a change asks again
+
+`TERMS_VERSION` is compared with each account's accepted version. The gate
+steps aside on the export screen, so nobody is forced to agree to keep
+their own data.
+
+## A plan never changes what the streak counts
+
+Plans, plan challenges and coach suggestions only describe what to do.
+Completion is read from the log; a coach's plan starts only when the member
+starts it.
