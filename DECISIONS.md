@@ -173,3 +173,22 @@ The options are a small VPS, a container platform, managed Postgres, or a
 rewrite onto Workers + D1. It is the owner's decision because each option
 either costs money or breaks the no-third-party stance. Until it is made,
 `app` and `api` stay undeployed and have no DNS records.
+
+## API hosting and email provider: deferred, deliberately
+
+**Asked 25 September 2026, answered "decide later" for both.** Options offered
+for hosting: a small VPS (recommended), a container platform (Fly.io, Railway
+or Render), or deferring. For email: generic SMTP (recommended; Zoho already
+handles `hello@`), Cloudflare Email, or deferring.
+
+Consequence: `api/compose.prod.yaml` is host-agnostic (any Docker host behind a
+TLS proxy), and email is provider-neutral SMTP. Choosing either is
+configuration, not code. Production refuses to start until real email is
+configured. Both choices block launch.
+
+## Waitlist on www: skipped
+
+**Asked 25 September 2026, answered "skip".** A Pages Function + KV waitlist
+would have been the first network request `web` ever makes. It stays
+`mailto:` until launch, when "Sign up" on the app replaces it. This closes
+site-audit item 10.
