@@ -141,6 +141,26 @@ dig +short TXT pacestreak.com     # expect v=spf1 include:zoho.in ~all
 
 ---
 
+## Reminders, digests or deletions stopped (the API is up)
+
+**Symptom:** the status page shows `/health/worker` down while
+`/health/ready` is up; nobody gets streak nudges or the Monday digest.
+
+**Cause:** the `worker` container has stopped, is crash-looping, or every
+tick is failing on one job.
+
+**Fix:** open **Admin → Metrics** in the app, which names the last result of
+each job; a job showing `Failed:` is the place to look. Then:
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml ps worker
+docker compose -f compose.yaml -f compose.prod.yaml logs --tail=200 worker
+docker compose -f compose.yaml -f compose.prod.yaml restart worker
+```
+
+A failing job never stops the others; it is logged and the tick carries on.
+The endpoint turns healthy again after the next clean tick.
+
 ## Verifying everything at once
 
 ```bash

@@ -192,3 +192,34 @@ configured. Both choices block launch.
 would have been the first network request `web` ever makes. It stays
 `mailto:` until launch, when "Sign up" on the app replaces it. This closes
 site-audit item 10.
+
+## Passkeys are bound to `app.pacestreak.com`, not the apex
+
+A WebAuthn relying-party id may be the registrable domain, which would let any
+`*.pacestreak.com` host request the same credentials. Binding to the app's own
+host keeps that power with the one origin that needs it. The cost is that
+passkeys can never move to another host without every user re-registering,
+so the id is fixed for good.
+
+## Shared streaks are judged from personal verdicts
+
+Buddy and group streaks never look at sessions: they combine each member's
+own kept/frozen/repaired/paused/missed verdict. So every way a person's week
+is forgiven (freeze, repair, pause, planned rest) forgives the shared week
+too, and a shared streak can never ask more of someone than their own. The
+verdicts are projected into `user_stats.recent_weeks`, so reading a group
+costs one row per member.
+
+## Encouragement is preset, not free text
+
+Six fixed messages, only towards people who already chose a connection with
+the sender, once a day per pair. Free-text messages would need moderation
+tooling, reporting flows and abuse handling that a streak tracker should not
+have to carry.
+
+## The monthly backup reminder carries no data and no token
+
+An email with an export attached, or a download link that works without a
+session, would put a person's whole history in an inbox or in the
+notifications table. The reminder links into the app, where downloading
+still needs a signed-in session.
