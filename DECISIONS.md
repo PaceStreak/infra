@@ -149,3 +149,27 @@ CLI, not about the platform. Check the dashboard or the API before concluding
 something is impossible — this is the second time that exact inference has been
 wrong here, after the direct-upload-to-Git-connected claim in
 [TOPOLOGY.md](./TOPOLOGY.md#cloudflare-pages-projects).
+
+## The app is a static SPA shell
+
+**Decided (September 2026).** `app.pacestreak.com` is a React + Vite single-page
+app served from Cloudflare Pages, not server-rendered.
+
+Why: it keeps the app in the same operational shape as every other site (Pages,
+Git-connected, no runtime), and a shell that holds no user data can be cached
+at the edge without ever leaking one person's training data to another.
+Offline support comes from IndexedDB and a service worker in the app, not from
+the edge.
+
+Cost: a blank first paint until data loads, and auth redirects happen on the
+client. Both are acceptable for a signed-in tool used mostly from the home
+screen.
+
+## The API's hosting is still open
+
+**Not decided.** FastAPI + Postgres + Redis + a worker cannot run on
+Cloudflare's free tier, and Python Workers (Pyodide) rule out this stack there.
+The options are a small VPS, a container platform, managed Postgres, or a
+rewrite onto Workers + D1. It is the owner's decision because each option
+either costs money or breaks the no-third-party stance. Until it is made,
+`app` and `api` stay undeployed and have no DNS records.
