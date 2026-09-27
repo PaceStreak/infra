@@ -183,21 +183,35 @@ rather than another `compose.prod.yaml` overlay: Compose has no clean way to
 *remove* a service through file-merging, and there was no `postgres`/`redis`
 service left to keep.
 
-**Image distribution and deploy: CI-triggered, zero-downtime.**
+**Image distribution and deploy: the VM pulls, CI never reaches in.**
 `.github/workflows/publish.yml` builds and pushes
-`ghcr.io/pacestreak/api:<sha>` on every merge to main, then SSHes into the VM
-over a forced-command-only key (it can run nothing except the one deploy
-script - a leaked key cannot open a shell) and runs
-`docker service update --image ... --update-order start-first` for `api` and
-`worker`. The VM runs a single-node Docker Swarm (`docker swarm init`, no
-other node ever joins) specifically so that update is a real rolling update:
-Swarm starts the new task, waits for its healthcheck to pass, and only then
-stops the old one - the overlay network's routing mesh never sends traffic to
-a task that hasn't passed its healthcheck, so there is no gap `cloudflared`
-can observe. A Watchtower-style poller was considered and rejected: it would
-be a second, independent deploy mechanism racing the CI-triggered one for no
-benefit. The VM never clones this repository; it only ever pulls a prebuilt
-image.
+`ghcr.io/pacestreak/api:<sha>` and `:latest` on every merge to main - that is
+the entire job, and this repo's GitHub Actions secrets hold no credential for
+the VM at all. A systemd timer on the VM (`autodeploy.timer`, every 2
+minutes, unit files in `deploy/gcp/`) runs `autodeploy.sh`: pull `:latest`,
+compare its resolved digest against what's currently running
+(`docker service inspect`), and if they differ, `docker service update
+--image <digest> --with-registry-auth --update-order start-first` for `api`
+and `worker`, pinned to the resolved digest rather than the mutable `:latest`
+tag - Swarm only re-checks an image reference when it changes, so re-applying
+`:latest` verbatim would silently no-op on a later restart. The VM runs a
+single-node Docker Swarm (`docker swarm init`, no other node ever joins)
+specifically so that update is a real rolling update: Swarm starts the new
+task, waits for its healthcheck to pass, and only then stops the old one -
+the overlay network's routing mesh never sends traffic to a task that hasn't
+passed its healthcheck, so there is no gap `cloudflared` can observe. The VM
+never clones this repository; it only ever pulls a prebuilt image.
+
+**This replaces an earlier CI-SSH design that was written up but never
+actually wired into `publish.yml`.** A forced-command-only deploy key existed
+on the VM (a `deploy` system user whose `authorized_keys` could run nothing
+but one script) with no corresponding GitHub Actions secret ever created, so
+every deploy up to this point was applied by hand. Decided instead: no SSH
+credential for deployment should exist at all, in either direction - the VM
+decides when to update itself, and a leaked GHCR pull credential (read-only,
+and already needed just to run the image) is a smaller blast radius than any
+credential that can update a running service. The `deploy` user, its key, and
+the old hand-invoked `deploy.sh` have been removed from the VM.
 
 **Migrations run in the entrypoint here (`RUN_MIGRATIONS=1`), unlike every
 other environment.** `compose.prod.yaml` runs migrations from a one-shot
