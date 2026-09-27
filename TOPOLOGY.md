@@ -81,17 +81,27 @@ name and its `pages.dev` hostname can disagree permanently, so **do not infer
 the project name from the `pages.dev` URL** — check `wrangler pages project
 list`.
 
+### `api.pacestreak.com`: live via Cloudflare Tunnel, not Pages
+
+Created 27 September 2026 by setting a Public Hostname in the Cloudflare Zero
+Trust dashboard's Tunnel config, which is what actually wrote the DNS record -
+same "never by hand in the DNS tab" rule, different mechanism than Pages'
+custom-domain flow. It's a CNAME to the tunnel, not to a `pages.dev` project:
+`api` isn't Pages at all, it's a FastAPI app on a GCP `e2-micro` VM (see
+`infra/DECISIONS.md`'s hosting entry). `dig api.pacestreak.com` resolves to
+Cloudflare's anycast IPs like every other proxied record here; the VM itself
+has no public inbound port open anywhere.
+
 ### Not yet created
 
-`app.pacestreak.com` and `api.pacestreak.com` have **no DNS records**, and that
-is deliberate. Create them by attaching the custom domain to a real deployment,
-which lets Cloudflare write the record — never by hand in the DNS tab. A
-proxied record pointing at nothing returns `522`, which looks to a visitor like
-a broken product rather than an unlaunched one.
+`app.pacestreak.com` has **no DNS record**, and that is deliberate. Create it
+by attaching the custom domain to a real deployment, which lets Cloudflare
+write the record — never by hand in the DNS tab. A proxied record pointing at
+nothing returns `522`, which looks to a visitor like a broken product rather
+than an unlaunched one.
 
 When `app` is created it becomes a third Pages project — **named
-`pacestreak-app`**, Git-connected to `PaceStreak/app` — and a fourth proxied
-CNAME.
+`pacestreak-app`**, Git-connected to `PaceStreak/app` — and a proxied CNAME.
 
 > A direct-upload project **can** be connected to a repository afterwards —
 > Cloudflare supports it from the project's Settings. What it cannot do is

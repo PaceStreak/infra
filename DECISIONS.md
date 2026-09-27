@@ -165,26 +165,63 @@ Cost: a blank first paint until data loads, and auth redirects happen on the
 client. Both are acceptable for a signed-in tool used mostly from the home
 screen.
 
-## The API's hosting is still open
+## The API's hosting: decided - GCP e2-micro, Neon, Upstash
 
-**Not decided.** FastAPI + Postgres + Redis + a worker cannot run on
-Cloudflare's free tier, and Python Workers (Pyodide) rule out this stack there.
-The options are a small VPS, a container platform, managed Postgres, or a
-rewrite onto Workers + D1. It is the owner's decision because each option
-either costs money or breaks the no-third-party stance. Until it is made,
-`app` and `api` stay undeployed and have no DNS records.
+**Decided 27 September 2026.** A GCP `e2-micro` (Always Free tier: 1 instance,
+`us-west1`/`us-central1`/`us-east1` only) running Ubuntu 24.04 LTS, 30GB
+`pd-standard` boot disk, `STANDARD` network tier. Instance: `pacestreak-api`,
+zone `us-central1-a`. No HTTP/HTTPS firewall rule and no external reverse
+proxy - see the Cloudflare Tunnel entry below.
 
-## API hosting and email provider: deferred, deliberately
+Postgres and Redis are **not** containers on this host. An e2-micro has
+~1GB RAM; running a database, a cache, the API and the worker on it at once
+left no headroom. Postgres is Neon (serverless, scales to zero, pooled
+connection string for the app, direct connection string only for
+`alembic upgrade head`); Redis is Upstash (`rediss://`, TLS). This is why
+`api/compose.gcp.yaml` exists as a **separate, self-contained** compose file
+rather than another `compose.prod.yaml` overlay: Compose has no clean way to
+*remove* a service through file-merging, and there was no `postgres`/`redis`
+service left to keep.
 
-**Asked 25 September 2026, answered "decide later" for both.** Options offered
-for hosting: a small VPS (recommended), a container platform (Fly.io, Railway
-or Render), or deferring. For email: generic SMTP (recommended; Zoho already
-handles `hello@`), Cloudflare Email, or deferring.
+**Image distribution and deploy: CI-triggered, zero-downtime.**
+`.github/workflows/publish.yml` builds and pushes
+`ghcr.io/pacestreak/api:<sha>` on every merge to main, then SSHes into the VM
+over a forced-command-only key (it can run nothing except the one deploy
+script - a leaked key cannot open a shell) and runs
+`docker service update --image ... --update-order start-first` for `api` and
+`worker`. The VM runs a single-node Docker Swarm (`docker swarm init`, no
+other node ever joins) specifically so that update is a real rolling update:
+Swarm starts the new task, waits for its healthcheck to pass, and only then
+stops the old one - the overlay network's routing mesh never sends traffic to
+a task that hasn't passed its healthcheck, so there is no gap `cloudflared`
+can observe. A Watchtower-style poller was considered and rejected: it would
+be a second, independent deploy mechanism racing the CI-triggered one for no
+benefit. The VM never clones this repository; it only ever pulls a prebuilt
+image.
 
-Consequence: `api/compose.prod.yaml` is host-agnostic (any Docker host behind a
-TLS proxy), and email is provider-neutral SMTP. Choosing either is
-configuration, not code. Production refuses to start until real email is
-configured. Both choices block launch.
+**Migrations run in the entrypoint here (`RUN_MIGRATIONS=1`), unlike every
+other environment.** `compose.prod.yaml` runs migrations from a one-shot
+container specifically so two API replicas can never race each other running
+`alembic upgrade head` at once. An e2-micro cannot afford a second replica of
+anything - that race is structurally impossible here - and the tradeoff flips:
+without this, an unattended Watchtower auto-deploy would need a human to SSH
+in and migrate by hand after every schema change, defeating the point of
+auto-deploy. Do not copy this default to a host that runs more than one
+replica.
+
+**Ingress is a Cloudflare Tunnel**, not a reverse proxy with an open port.
+`cloudflared` runs as a container on the same Docker network as `api`,
+reachable only by service name (`http://api:8000`) - nothing binds to the
+VM's network interface at all. The tunnel's public hostname
+(`api.pacestreak.com`) is set from the Cloudflare Zero Trust dashboard, which
+is what actually creates the DNS record - consistent with never hand-creating
+one in the DNS tab.
+
+## API hosting and email provider: no longer open
+
+**Asked 25 September 2026, answered "decide later" for both; hosting resolved
+27 September 2026 (above).** Email was resolved earlier - Brevo, see
+`api/README.md`'s Turnstile section and `HANDOFF.md` §4.
 
 ## Waitlist on www: skipped
 
