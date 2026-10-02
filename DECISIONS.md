@@ -88,11 +88,11 @@ in the dashboard that nobody can date or explain.
 
 ## The product gets its own host, separate from the public site
 
-**Date:** 2026-08-29 · **Status:** decided, not yet implemented
+**Date:** 2026-08-29 · **Status:** decided, implemented (`app.pacestreak.com` is live)
 
 `www.pacestreak.com` serves only the public site
 ([`web`](https://github.com/PaceStreak/web), formerly `landing`). The signed-in
-product is built in [`app`](https://github.com/PaceStreak/app) and will be
+product is built in [`app`](https://github.com/PaceStreak/app) and is
 served from `app.pacestreak.com`. The alternative — `www.pacestreak.com/app` —
 was rejected.
 
