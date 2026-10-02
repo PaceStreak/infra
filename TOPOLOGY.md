@@ -129,6 +129,12 @@ custom-domain flow. It's a CNAME to the tunnel, not to a `pages.dev` project:
 Cloudflare's anycast IPs like every other proxied record here; the VM itself
 has no public inbound port open anywhere.
 
+Capacity, measured 2 October 2026 with `api/scripts/loadtest.py`: one API
+process (`WEB_CONCURRENCY=1`) handles about 40-45 requests a second before
+it only queues. From India, about 340 ms of each production request is the
+round trip to us-central1; `/health` takes about 45 ms on the VM. Details in
+`api/README.md#capacity-measured-2026-10-02`.
+
 ### How `app` got its record
 
 `app.pacestreak.com` was attached as a custom domain on the `pacestreak-app`
