@@ -214,8 +214,9 @@ Plain `curl` doesn't show it; a browser User-Agent does.
 into HTML at the edge. Our CSP blocks it, correctly.
 
 **Fix:** pages send `Cache-Control: no-transform` (in each repo's
-`public/_headers`), which stops the edge rewriting them. Turning Web Analytics
-off in the dashboard is the root fix.
+`public/_headers`), which stops the edge rewriting them. The root fix, turning
+Web Analytics off in the dashboard, was done on 2026-10-02; if the error
+returns, check whether someone switched it back on.
 
 ## Verifying everything at once
 

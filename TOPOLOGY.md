@@ -175,15 +175,15 @@ which is why the sites run `check-html.py` in CI and Vite/Astro build with
 
 ### `Cache-Control: no-transform` on pages
 
-Cloudflare Web Analytics is enabled on the zone and injects
+Cloudflare Web Analytics was enabled on the zone and injected
 `static.cloudflareinsights.com/beacon.min.js` into HTML responses. The CSP
 blocks it, so it collected nothing and logged a console error on every page,
 costing Lighthouse Best Practices points. Page routes now send
 `no-transform`, which stops the edge rewriting the HTML. Scoped to page routes
 (`/`, `/:page`, `/posts/:slug` …) so it never merges with the immutable
 `/_astro/*` and `/assets/*` rules; a more specific rule wins for the same
-header. The cleaner fix is to switch Web Analytics off in the dashboard, which
-the available tokens cannot do.
+header. Web Analytics was switched off in the dashboard on 2026-10-02; the
+header stays as a guard against any edge rewrite.
 
 ### Files for agents
 
