@@ -7,6 +7,12 @@ Dated rather than versioned — infrastructure is continuously deployed.
 
 ## 2026-10-02
 
+### Changed
+
+- **All repositories are public.** Histories were scanned for secrets first
+  and commit messages cleaned of tool-generated trailers; the root repo's
+  submodule pins were remapped so every historical pin still resolves.
+
 ### Fixed
 
 - **App deep links redirected to Today.** The SPA rewrite target was

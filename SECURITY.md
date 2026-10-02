@@ -5,16 +5,16 @@
 **Do not open a public issue.** Email **<hello@pacestreak.com>**. You will get
 an acknowledgement within 72 hours.
 
-This file exists per-repository because community health files in a **public**
-`.github` repository do not apply to **private** ones, and this repository is
-private.
+This file is kept per-repository, alongside the organisation-wide copy in
+[PaceStreak/.github](https://github.com/PaceStreak/.github), so the policy
+travels with the code if this repository is forked or mirrored.
 
-## Why this repository is private
+## Why this repository is public
 
 It documents the attack surface: which hostnames exist, what is proxied, which
 records are grey-clouded, where the certificates come from, and how the trust
-boundary is drawn. None of that is secret — all of it is observable from
-outside — but collecting it in one place is a convenience worth withholding.
+boundary is drawn. None of that is secret, all of it is observable from
+outside, and publishing it lets anyone check the reasoning.
 
 **Nothing in here is a credential, and nothing ever should be.** No API tokens,
 no private keys, no secret values. If a change would add one, it belongs in

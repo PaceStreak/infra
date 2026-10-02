@@ -326,6 +326,15 @@ never `'unsafe-inline'`. The hash is computed after each build and written into
 `dist/_headers`; `check-html.py` fails the build on a missing hash, so it
 cannot drift into an unstyled production page.
 
+## Every repository is public
+
+Since 2026-10-02 all eight repositories are public under AGPL-3.0. A product
+holding weight, food, mood and habit data should let people check the claims
+made about it against the code. Before the switch every history was scanned
+for secrets (none: credentials only ever lived in environment variables and
+Actions secrets). `SECURITY.md` stays duplicated per repository so the policy
+travels with a fork.
+
 ## Crash reports are self-hosted and anonymous
 
 No third-party error service: the app posts crashes to the API. Reports carry
