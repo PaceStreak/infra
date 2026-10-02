@@ -268,12 +268,63 @@ the sender, once a day per pair. Free-text messages would need moderation
 tooling, reporting flows and abuse handling that a streak tracker should not
 have to carry.
 
-## The monthly backup reminder carries no data and no token
+## The monthly backup email: data only on a second, confirmed opt-in
 
-An email with an export attached, or a download link that works without a
-session, would put a person's whole history in an inbox or in the
-notifications table. The reminder links into the app, where downloading
-still needs a signed-in session.
+**Date:** 2026-09-26, revised 2026-10-02 · **Status:** decided
+
+Originally the reminder carried no data and no token: an export in an email
+puts a person's whole history, quit habits included, in an inbox, where it is
+forwarded, indexed by the mail provider and exposed if that account is taken
+over.
+
+The owner asked for the file to be emailable anyway. It is now, under three
+guards: a **separate** opt-in from the reminder (`backup_attachment`, off by
+default); a confirmation in the app that says in plain words what the email
+will contain and who can read it; and still **no token**. The zip is the
+whole message, so a forwarded email can fetch nothing later. Exports over
+10 MB fall back to the link. Recorded so the next person doesn't "simplify"
+the confirmation away.
+
+## Undo is a server-side restore, from a snapshot trash
+
+**Date:** 2026-10-02 · **Status:** decided
+
+Client-side undo (delay the delete) fails when the tab closes or another
+device deletes. A soft-delete column on every table makes every query
+responsible for filtering it out. So deletes are immediate, and a snapshot of
+the rows (a habit with its logs) goes to `trash_items` for 30 days. Restores
+keep original ids so references reconnect, and refuse with 409, changing
+nothing, if something now occupies the place. Workouts keep their existing
+soft delete, which sync needs.
+
+## Notification buttons use signed links, not a session
+
+**Date:** 2026-10-02 · **Status:** decided
+
+The service worker has no access token, by design. Done and Snooze buttons on
+reminders carry an HMAC over user, habit, action, day and an 18-hour expiry,
+keyed from the JWT key like unsubscribe links. A leaked link can do one thing
+to one habit until it expires. Giving the worker a token instead would undo
+the reason tokens live in memory.
+
+## Insights and the coach are arithmetic, not a model
+
+**Date:** 2026-10-01 · **Status:** decided
+
+No AI provider: it would be the first service to receive what people log. A
+pattern is shown only with 8+ days each side and a Welch t-test |t| ≥ 2. The
+daily coach is fixed rules. Barcode lookups go to Open Food Facts, sending
+the barcode and nothing else, cached in Redis, and named on the privacy page.
+An AI vendor remains possible but undecided by the owner.
+
+## `www` inlines its stylesheet and allows it by hash
+
+**Date:** 2026-10-02 · **Status:** decided
+
+For mobile first paint the CSS is inlined; the CSP gains that block's SHA-256,
+never `'unsafe-inline'`. The hash is computed after each build and written into
+`dist/_headers`; `check-html.py` fails the build on a missing hash, so it
+cannot drift into an unstyled production page.
 
 ## Crash reports are self-hosted and anonymous
 

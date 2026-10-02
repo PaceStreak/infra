@@ -16,14 +16,16 @@ Copyright (c) 2026 PaceStreak. Licensed under [AGPL-3.0](./LICENSE).
 | --- | --- | --- | --- |
 | `www.pacestreak.com` | Public site (**canonical**) | [`web`](https://github.com/PaceStreak/web) | Cloudflare Pages |
 | `pacestreak.com` | 301 → `www` | Redirect Rule | Cloudflare |
-| `blog.pacestreak.com` | Build log | [`blog`](https://github.com/PaceStreak/blog) | Cloudflare Pages |
+| `blog.pacestreak.com` | Blog | [`blog`](https://github.com/PaceStreak/blog) | Cloudflare Pages |
 | `status.pacestreak.com` | Public status page | [`status`](https://github.com/PaceStreak/status) | GitHub Pages |
-| `app.pacestreak.com` | The product (**not built**) | [`app`](https://github.com/PaceStreak/app) | — |
-| `api.pacestreak.com` | Backend (**not built**) | [`api`](https://github.com/PaceStreak/api) | — |
+| `app.pacestreak.com` | The product | [`app`](https://github.com/PaceStreak/app) | Cloudflare Pages (`pacestreak-app`) |
+| `api.pacestreak.com` | Backend: FastAPI, worker | [`api`](https://github.com/PaceStreak/api) | GCP `e2-micro` VM, Docker Swarm, Cloudflare Tunnel; Neon Postgres, Upstash Redis |
 
-Mail is Zoho: `MX`, SPF, DKIM (`zmail._domainkey`) and DMARC records on the
-apex. **Do not touch those when changing web hosting** — they are unrelated and
-easy to delete by accident.
+Mail has two senders. **Zoho** receives and sends `hello@` (`MX`, SPF, DKIM
+`zmail._domainkey`); **Brevo** sends the app's mail (DKIM `brevo1`/`brevo2`).
+DMARC is `p=reject`. **Do not touch these when changing web hosting**: they
+are unrelated and easy to delete by accident, and deleting Brevo's DKIM makes
+every app email fail DMARC. See [TOPOLOGY.md](./TOPOLOGY.md).
 
 ## Documentation
 
@@ -43,8 +45,8 @@ Four things account for most of the surprises here:
 1. **A proxied DNS record with nothing behind it returns `522`, which is worse
    than no record at all.** Before, the hostname does not exist; after, it
    serves a Cloudflare error page that reads as "this product is broken". This
-   is why `app` and `api` have no records yet, and why they should be created
-   by attaching a custom domain to a deployment rather than by hand.
+   is why `app` and `api` got their records by attaching a custom domain to a
+   deployment and from the tunnel config, never by hand.
 2. **Cloudflare Pages issues a separate certificate per custom domain.** The
    apex and `www` certificates have different SAN lists and different expiry
    dates. One check cannot cover both, which is why the status page monitors
@@ -60,9 +62,10 @@ Each is expanded in the runbook with the symptom that led to it.
 ## Why not Terraform yet
 
 Terraform for Cloudflare is worth it when there are enough resources that
-drift becomes invisible. Right now there are two Pages projects, nine DNS
-records and one redirect rule — small enough that a written record is
-honest and an unapplied `.tf` file would be a lie waiting to happen.
+drift becomes invisible. Right now there are three Pages projects, one
+tunnel, about fifteen DNS records and one redirect rule: still small enough
+that a written record is honest and an unapplied `.tf` file would be a lie
+waiting to happen.
 
 The trigger to change this: **a second environment**, or the first time
 something is changed in the dashboard and nobody can say when or why.

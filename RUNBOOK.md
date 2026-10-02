@@ -150,24 +150,82 @@ dig +short TXT pacestreak.com     # expect v=spf1 include:zoho.in ~all
 tick is failing on one job.
 
 **Fix:** open **Admin → Metrics** in the app, which names the last result of
-each job; a job showing `Failed:` is the place to look. Then:
+each job; a job showing `Failed:` is the place to look. Then, on the VM
+(production runs Docker Swarm, stack `pacestreak`; not Compose):
 
 ```bash
-docker compose -f compose.yaml -f compose.prod.yaml ps worker
-docker compose -f compose.yaml -f compose.prod.yaml logs --tail=200 worker
-docker compose -f compose.yaml -f compose.prod.yaml restart worker
+gcloud compute ssh pacestreak-api --zone us-central1-a
+sudo docker service ps pacestreak_worker            # state, and why tasks died
+sudo docker service logs --tail 200 pacestreak_worker
+sudo docker service update --force pacestreak_worker  # restart in place
 ```
 
 A failing job never stops the others; it is logged and the tick carries on.
 The endpoint turns healthy again after the next clean tick.
 
+## A deploy didn't reach the API
+
+**Symptom:** a change merged to `api` `main`, CI is green, but the live API
+behaves as before.
+
+**Cause:** the VM pulls rather than being pushed to. `autodeploy.timer` runs
+`deploy/gcp/autodeploy.sh` every two minutes: it pulls
+`ghcr.io/pacestreak/api:latest` and, if the digest changed, rolls the `api` and
+`worker` services start-first. Migrations run when the new container boots
+(`RUN_MIGRATIONS=1`).
+
+**Fix:** check each link in order.
+
+```bash
+gh run list -R PaceStreak/api -L 3          # "Publish image" succeeded?
+gcloud compute ssh pacestreak-api --zone us-central1-a --command '
+  sudo journalctl -t autodeploy -n 5 --no-pager
+  sudo docker service ps pacestreak_api --format "{{.Image}} {{.CurrentState}} {{.Error}}"
+  c=$(sudo docker ps -q -f name=pacestreak_api -f health=healthy | head -1)
+  sudo docker exec $c alembic current'
+```
+
+A new task that keeps exiting with `137` is out of memory: the VM has 1 GB.
+A migration that fails stops the new task from becoming healthy, and
+start-first keeps the old one serving, so the site stays up on the old code.
+
+## Reloading a page in the app lands on Today
+
+**Symptom:** inside the app everything works, but reloading any page except
+Today, opening a shared link, or using a home-screen shortcut lands on Today.
+
+**Cause:** `curl -sI https://app.pacestreak.com/habits` shows a `308` to `/`.
+The SPA rewrites in `_redirects` pointed at `/index.html`, and Pages
+normalises `/index.html` to `/` with a redirect, including for rewrite
+targets. It had been that way on every deployment until 2026-10-02.
+
+**Fix:** rewrite to `/` (`vite.config.ts` generates the rules). Check the
+**status code without following redirects**; a browser or `curl -L` shows
+the page loading and hides the bug.
+
+## Every page logs a CSP error for `cloudflareinsights.com`
+
+**Symptom:** a console error on every page, `Loading the script
+'https://static.cloudflareinsights.com/beacon.min.js/…' violates the following
+Content Security Policy directive`, and Lighthouse Best Practices below 100.
+Plain `curl` doesn't show it; a browser User-Agent does.
+
+**Cause:** Cloudflare Web Analytics is on for the zone and injects its beacon
+into HTML at the edge. Our CSP blocks it, correctly.
+
+**Fix:** pages send `Cache-Control: no-transform` (in each repo's
+`public/_headers`), which stops the edge rewriting them. Turning Web Analytics
+off in the dashboard is the root fix.
+
 ## Verifying everything at once
 
 ```bash
 for u in https://pacestreak.com https://www.pacestreak.com \
-         https://blog.pacestreak.com https://status.pacestreak.com; do
-  printf '%-32s %s\n' "$u" "$(curl -sS -o /dev/null -m 20 -w '%{http_code} %{redirect_url}' "$u")"
+         https://blog.pacestreak.com https://status.pacestreak.com \
+         https://app.pacestreak.com/habits https://api.pacestreak.com/v1/library; do
+  printf '%-40s %s\n' "$u" "$(curl -sS -o /dev/null -m 20 -w '%{http_code} %{redirect_url}' "$u")"
 done
 ```
 
-Expected: apex `301`, the other three `200`.
+Expected: apex `301`, everything else `200`. A `308` on the app deep link is
+the SPA rewrite problem above.

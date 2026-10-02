@@ -5,6 +5,50 @@ Changes to infrastructure, and to the documentation of it.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Dated rather than versioned — infrastructure is continuously deployed.
 
+## 2026-10-02
+
+### Fixed
+
+- **App deep links redirected to Today.** The SPA rewrite target was
+  `/index.html`, which Pages turns into a 308 to `/`. Now `/`; checked on a
+  preview branch before merging. Runbook entry added.
+
+### Changed
+
+- Page routes on `www`, `blog` and `app` send `Cache-Control: no-transform`
+  so the zone's Web Analytics beacon is no longer injected (the CSP blocked it
+  and every page logged an error). Lighthouse is 100 on every desktop
+  category.
+- `www` inlines its stylesheet, allowed in the CSP by a hash generated at
+  build time; `check-html.py` fails the build if it's missing. Archivo is
+  preloaded on `www` and the blog, removing a 0.06 layout shift.
+- `www` and `blog` serve `llms.txt` and `/.well-known/ai-catalog.json`; `www`
+  registers one read-only WebMCP tool.
+- New API tables and columns (trash, habit snooze, summary hour, backup
+  attachment) applied by the VM's boot-time migration.
+- `blog`: `fflate` pinned to 0.8.3 by an npm override instead of npm's
+  suggested fix, which would have downgraded `satori`. `web`: `npm audit fix`
+  cleared the `devalue` and `undici` advisories.
+
+### Documented
+
+- `TOPOLOGY.md`: the `app` and `api` records, Brevo's DKIM and why SPF lists
+  only Zoho, the third Pages project, per-site CSPs, `no-transform`, SPA
+  routing and the agent files.
+- `RUNBOOK.md`: API deploys that don't arrive, deep links landing on Today,
+  injected-beacon CSP errors; worker commands updated from Compose to Swarm.
+- `DECISIONS.md`: the backup email opt-in, server-side undo, signed
+  notification buttons, insights without a model, and hashed inline CSS.
+
+## 2026-09-27
+
+### Added
+
+- `api.pacestreak.com` live: a FastAPI app and worker on a GCP `e2-micro` VM,
+  reached through a Cloudflare Tunnel with no public inbound port. Neon
+  Postgres, Upstash Redis, Brevo for mail.
+- `app.pacestreak.com` live as the `pacestreak-app` Pages project.
+
 ## 2026-08-30
 
 ### Changed
