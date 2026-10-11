@@ -146,18 +146,20 @@ dig +short TXT pacestreak.com     # expect v=spf1 include:zoho.in ~all
 **Symptom:** the status page shows `/health/worker` down while
 `/health/ready` is up; nobody gets streak nudges or the Monday digest.
 
-**Cause:** the `worker` container has stopped, is crash-looping, or every
-tick is failing on one job.
+**Cause:** the worker is a scheduled GitHub Actions workflow
+(`api/.github/workflows/worker.yml`, every five minutes), not a process.
+Either the schedule is not firing, the image cannot be pulled, or every tick
+is failing on one job. GitHub delays scheduled runs under load and disables
+them after 60 days without repository activity.
 
 **Fix:** open **Admin → Metrics** in the app, which names the last result of
-each job; a job showing `Failed:` is the place to look. Then, on the VM
-(production runs Docker Swarm, stack `pacestreak`; not Compose):
+each job; a job showing `Failed:` is the place to look. Then:
 
 ```bash
-gcloud compute ssh pacestreak-api --zone us-central1-a
-sudo docker service ps pacestreak_worker            # state, and why tasks died
-sudo docker service logs --tail 200 pacestreak_worker
-sudo docker service update --force pacestreak_worker  # restart in place
+gh run list -R PaceStreak/api --workflow "Worker tick" -L 8   # firing? succeeding?
+gh run view <id> -R PaceStreak/api --log                      # why a tick failed
+gh workflow enable "Worker tick" -R PaceStreak/api            # if GitHub disabled it
+gh workflow run "Worker tick" -R PaceStreak/api               # run one tick now
 ```
 
 A failing job never stops the others; it is logged and the tick carries on.
@@ -168,26 +170,25 @@ The endpoint turns healthy again after the next clean tick.
 **Symptom:** a change merged to `api` `main`, CI is green, but the live API
 behaves as before.
 
-**Cause:** the VM pulls rather than being pushed to. `autodeploy.timer` runs
-`deploy/gcp/autodeploy.sh` every two minutes: it pulls
-`ghcr.io/pacestreak/api:latest` and, if the digest changed, rolls the `api` and
-`worker` services start-first. Migrations run when the new container boots
-(`RUN_MIGRATIONS=1`).
+**Cause:** FastAPI Cloud's GitHub integration deploys the API on every push
+to `main`; the schema is changed separately by the `Migrate` workflow.
 
-**Fix:** check each link in order.
+**Fix:** check each link in order. Run the `fastapi cloud` commands from a
+checkout of `api` (`uvx --from "fastapi[standard]" fastapi cloud ...`).
 
 ```bash
-gh run list -R PaceStreak/api -L 3          # "Publish image" succeeded?
-gcloud compute ssh pacestreak-api --zone us-central1-a --command '
-  sudo journalctl -t autodeploy -n 5 --no-pager
-  sudo docker service ps pacestreak_api --format "{{.Image}} {{.CurrentState}} {{.Error}}"
-  c=$(sudo docker ps -q -f name=pacestreak_api -f health=healthy | head -1)
-  sudo docker exec $c alembic current'
+gh run list -R PaceStreak/api -L 5                  # CI, Publish image, Migrate
+fastapi cloud deployments list                      # latest status; failure reason
+fastapi cloud logs --no-follow --tail 100           # runtime errors
+curl -s https://api.pacestreak.com/health
 ```
 
-A new task that keeps exiting with `137` is out of memory: the VM has 1 GB.
-A migration that fails stops the new task from becoming healthy, and
-start-first keeps the old one serving, so the site stays up on the old code.
+A deployment stuck in `verifying` means the app crashes on start; the logs
+say why (once it was `No module named 'app'`, fixed by `[tool.fastapi]` in
+`pyproject.toml`). A migration runs about a minute behind the deploy, so a
+failing `Migrate` run (`gh run view <id> --log`) leaves the new code serving
+against the old schema: fix the migration and re-run it with
+`gh workflow run Migrate -R PaceStreak/api`.
 
 ## Reloading a page in the app lands on Today
 

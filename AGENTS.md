@@ -19,7 +19,9 @@ Read it first; this file only adds what is specific to this repository.
   NXDOMAIN). Never touch the Zoho or Brevo mail records when changing hosting.
 - No secret values, keys or tokens, ever. The Cloudflare token available is
   `zone:read` only; cache purges and Pages settings need the dashboard.
-- Never change the GCP VM's configuration (free tier).
+- The GCP project is deleted (11 October 2026); never recreate a host there.
+  The API is on FastAPI Cloud's free plan, so check its limits before adding
+  anything that would exceed them.
 
 ## Commits
 
