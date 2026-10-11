@@ -167,6 +167,11 @@ screen.
 
 ## The API's hosting: decided - GCP e2-micro, Neon, Upstash
 
+> **Superseded on 11 October 2026** by
+> [the FastAPI Cloud entry](#the-apis-hosting-revised-fastapi-cloud-a-scheduled-worker-neon-upstash)
+> below. Kept as the record of what was chosen and why; none of this is
+> running any more, and the GCP projects are deleted.
+
 **Decided 27 September 2026.** A GCP `e2-micro` (Always Free tier: 1 instance,
 `us-west1`/`us-central1`/`us-east1` only) running Ubuntu 24.04 LTS, 30GB
 `pd-standard` boot disk, `STANDARD` network tier. Instance: `pacestreak-api`,
@@ -230,6 +235,51 @@ VM's network interface at all. The tunnel's public hostname
 (`api.pacestreak.com`) is set from the Cloudflare Zero Trust dashboard, which
 is what actually creates the DNS record - consistent with never hand-creating
 one in the DNS tab.
+
+## The API's hosting, revised: FastAPI Cloud, a scheduled worker, Neon, Upstash
+
+**Decided 11 October 2026. Status: implemented.** The API moved from the GCP
+`e2-micro` to FastAPI Cloud's free plan (app `pacestreak-api`, region
+us-east-1, custom domain `api.pacestreak.com`).
+
+**Why the VM went.** The e2-micro was free only until it needed a public
+address: its ephemeral external IPv4 is billed outside the free tier, and
+without one the VM has no route out, so the Cloudflare Tunnel, image pulls and
+SSH all fail. The remaining ways out were a paid Cloud NAT or external IPv6,
+which the organisation policy `compute.disableVpcExternalIpv6` forbids. Cloud
+Run was built and worked, but the same organisation policy
+(`iam.allowedPolicyMemberDomains`) blocks public invocation, and the owner
+did not want to keep fighting GCP's organisation guardrails for a free tier.
+
+**What replaced each piece.**
+
+- **API:** FastAPI Cloud, deployed by its GitHub integration on every push to
+  `main`. `[tool.fastapi] entrypoint = "app.main:app"` in `api/pyproject.toml`
+  is required: `app/` has no `__init__.py`, so the CLI cannot infer it.
+- **Worker:** `Worker tick` (`api/.github/workflows/worker.yml`) runs
+  `python -m app.worker --once` from `ghcr.io/pacestreak/api:latest` every five
+  minutes. The Redis lock and per-notification dedupe keys already made
+  overlapping or late ticks safe. Its environment is the `WORKER_ENV_JSON`
+  repository secret. Costs: GitHub may delay scheduled runs and disables them
+  after 60 days without repository activity.
+- **Migrations:** `Migrate` (`api/.github/workflows/migrate.yml`) runs
+  `alembic upgrade head` against Neon when `alembic/**` changes. FastAPI Cloud
+  has no boot step, so nothing else does. It lands about a minute after the
+  deploy, so every migration must stay compatible with the code still running
+  (add, switch, drop later).
+- **Ingress:** a DNS-only CNAME to FastAPI Cloud. There is no tunnel, and
+  Cloudflare's proxy is no longer in front of the API.
+- **Unchanged:** Neon, Upstash, R2, Brevo, Turnstile, GHCR.
+
+**Rejected.** Staying on the VM with a paid IP (about $3.60 a month, which the
+owner declined); Cloud NAT (costs more than the IP); Cloud Run (worked, blocked
+by organisation policy for public access); a paid VPS (see the earlier entry
+that recommended one).
+
+**Consequences.** The free plan is 0.1 vCPU bursting to 0.5, scale-to-zero,
+1 day of logs, and billing is not charged during the beta, so cold starts are
+slower and the terms may change. Secrets live in two places, FastAPI Cloud's
+environment and `WORKER_ENV_JSON`, and must be rotated together.
 
 ## API hosting and email provider: no longer open
 

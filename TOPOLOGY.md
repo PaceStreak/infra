@@ -11,7 +11,7 @@ Zone: **`pacestreak.com`**, on Cloudflare (free plan). Nameservers
 | `www` | CNAME | `pacestreak.pages.dev` | Proxied | Canonical public site. |
 | `blog` | CNAME | `pacestreak-blog.pages.dev` | Proxied | Blog. |
 | `app` | CNAME | `pacestreak-app.pages.dev` | Proxied | The product. Written by attaching the custom domain to the Pages project, not by hand. |
-| `api` | CNAME | `<tunnel-id>.cfargotunnel.com` | Proxied | The API, through a Cloudflare Tunnel. Written by the tunnel's Public Hostname config. |
+| `api` | CNAME | `<custom-domain-id>.custom-domains.fastapicloud.dev` | **DNS only** | The API on FastAPI Cloud. Also needs `_fc-dcv.api` and `_cf-custom-hostname.api` (TXT) and `_acme-challenge.api` (CNAME), all DNS only; `fastapi cloud domains list` prints the exact values. |
 | `status` | CNAME | `pacestreak.github.io` | **DNS only** | GitHub Pages must validate the domain to issue its certificate; it cannot do that through Cloudflare's proxy. |
 | `pacestreak.com` | MX ×3 | `mx.zoho.in`, `mx2`, `mx3` | DNS only | Mail. |
 | `pacestreak.com` | TXT | `v=spf1 include:zoho.in ~all` | DNS only | SPF. |
@@ -118,22 +118,25 @@ name and its `pages.dev` hostname can disagree permanently, so **do not infer
 the project name from the `pages.dev` URL** — check `wrangler pages project
 list`.
 
-### `api.pacestreak.com`: live via Cloudflare Tunnel, not Pages
+### `api.pacestreak.com`: FastAPI Cloud, not Pages
 
-Created 27 September 2026 by setting a Public Hostname in the Cloudflare Zero
-Trust dashboard's Tunnel config, which is what actually wrote the DNS record -
-same "never by hand in the DNS tab" rule, different mechanism than Pages'
-custom-domain flow. It's a CNAME to the tunnel, not to a `pages.dev` project:
-`api` isn't Pages at all, it's a FastAPI app on a GCP `e2-micro` VM (see
-`infra/DECISIONS.md`'s hosting entry). `dig api.pacestreak.com` resolves to
-Cloudflare's anycast IPs like every other proxied record here; the VM itself
-has no public inbound port open anywhere.
+Moved on 11 October 2026 from a GCP `e2-micro` VM behind a Cloudflare Tunnel
+(see `infra/DECISIONS.md`) to FastAPI Cloud's free plan, app `pacestreak-api`,
+region us-east-1. The custom domain was added with
+`fastapi cloud domains add api.pacestreak.com --standard`, which prints the
+four DNS records to create; the record is a **DNS-only** CNAME, so unlike the
+other hostnames here `dig api.pacestreak.com` shows the CNAME chain, not
+Cloudflare's anycast IPs, and Cloudflare's proxy, cache and WAF are not in
+front of the API. The old tunnel and its record no longer exist.
 
-Capacity, measured 2 October 2026 with `api/scripts/loadtest.py`: one API
-process (`WEB_CONCURRENCY=1`) handles about 40-45 requests a second before
-it only queues. From India, about 340 ms of each production request is the
-round trip to us-central1; `/health` takes about 45 ms on the VM. Details in
-`api/README.md#capacity-measured-2026-10-02`.
+Deploys come from FastAPI Cloud's GitHub integration on every push to `main`.
+Migrations are applied by the `Migrate` workflow in `api`. The scheduler
+tick (the old `worker` container) is the `Worker tick` workflow in `api`.
+
+Capacity was measured 2 October 2026 on the previous host (about 40-45
+requests a second per process); the free plan is 0.1 vCPU bursting to 0.5, so
+those figures do not carry over. Re-measure with `api/scripts/loadtest.py
+--health-only` before relying on them.
 
 ### How `app` got its record
 
@@ -154,7 +157,7 @@ nothing returns `522`, which reads as a broken product.
 | `www.pacestreak.com` | Google Trust Services | Pages-issued, **separate** cert |
 | `blog.pacestreak.com` | Google Trust Services | Pages-issued |
 | `app.pacestreak.com` | Google Trust Services | Pages-issued |
-| `api.pacestreak.com` | Cloudflare edge certificate | Tunnel hostname; the VM serves plain HTTP to `cloudflared` only |
+| `api.pacestreak.com` | Issued for the FastAPI Cloud custom hostname | DNS-validated through the `_acme-challenge.api` CNAME; not Cloudflare's edge certificate |
 | `status.pacestreak.com` | Let's Encrypt | GitHub Pages, HTTPS enforced |
 
 Cloudflare Pages issues **one certificate per custom domain**, not one with

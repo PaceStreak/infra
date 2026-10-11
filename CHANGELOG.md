@@ -5,6 +5,17 @@ Changes to infrastructure, and to the documentation of it.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Dated rather than versioned — infrastructure is continuously deployed.
 
+## 2026-10-11
+
+### Changed
+
+- **The API moved from a GCP `e2-micro` to FastAPI Cloud.** `api.pacestreak.com`
+  is now a DNS-only CNAME to FastAPI Cloud; the Cloudflare Tunnel and the VM are
+  gone and the `pacestreak` and `gcp-vps-lab` GCP projects are scheduled for
+  deletion. The worker runs as a scheduled GitHub Actions workflow and
+  migrations as a second workflow. `DECISIONS.md` records why; `TOPOLOGY.md`,
+  `RUNBOOK.md`, `README.md` and `AGENTS.md` describe the new setup.
+
 ## 2026-10-02
 
 ### Changed
