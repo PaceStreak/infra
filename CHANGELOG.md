@@ -22,7 +22,7 @@ Dated rather than versioned — infrastructure is continuously deployed.
 
 - `TOPOLOGY.md` records the API's measured capacity on the e2-micro.
 - `AGENTS.md` added; the app-host decision is marked implemented.
-- **All repositories are public** (superseded 2026-10-17: only `api`, `status` and `.github` remain public). Histories were scanned for secrets first
+- **All repositories are public** (superseded 2026-10-17: only `status` and `.github` remain public). Histories were scanned for secrets first
   and commit messages cleaned of tool-generated trailers; the root repo's
   submodule pins were remapped so every historical pin still resolves.
 

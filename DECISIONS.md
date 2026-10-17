@@ -376,13 +376,13 @@ never `'unsafe-inline'`. The hash is computed after each build and written into
 `dist/_headers`; `check-html.py` fails the build on a missing hash, so it
 cannot drift into an unstyled production page.
 
-## Only `api`, `status` and `.github` are public
+## Only `status` and `.github` are public
 
-Since 2026-10-17 `web`, `blog`, `app`, `infra` and the root repo are private
-again; `api` stays public because its five-minute worker tick would exhaust the
-free plan's private Actions minutes, and `status` and `.github` have to be.
-Cloudflare Pages deploys private repos. The rationale below is from the period
-(2 to 17 October) when all eight were public.
+Since 2026-10-17 every repository except `status` and `.github` (which have to
+be public) is private again, because the API is being rewritten and the user
+no longer wants the code published. The `api` worker tick will exhaust the free
+private Actions minutes until the rewrite replaces it. The rationale below is
+from 2 to 17 October, when all eight were public.
 
 Since 2026-10-02 all eight repositories were public under AGPL-3.0. A product
 holding weight, food, mood and habit data should let people check the claims
