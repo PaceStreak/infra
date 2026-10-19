@@ -300,7 +300,25 @@ or every request fails silently.
 
 ---
 
-## 9. Still to do by hand
+## 9. Backups
+
+1. **D1 Time Travel:** restore to any minute in the last 7 days (30 on Paid):
+   `cd api && pnpm wrangler d1 time-travel restore pacestreak --timestamp <ISO time>`.
+2. **Nightly copy in Neon:** `api/.github/workflows/backup.yml` runs at
+   23:30 IST (or by hand: `gh workflow run backup.yml -R PaceStreak/api`).
+   It exports D1 and loads every table into Neon's `d1_backup` schema,
+   replacing the previous copy only if the whole load succeeds.
+   - Secrets on `PaceStreak/api`: `CLOUDFLARE_API_TOKEN` (Account → D1 →
+     **Edit**; Read is not enough for export), `CLOUDFLARE_ACCOUNT_ID`,
+     `NEON_DATABASE_URL`.
+   - Check it: `psql "$NEON_DATABASE_URL" -c "select count(*) from d1_backup.users"`.
+   - It is a copy for reading and restoring by hand, not a live database:
+     columns are typed by SQLite affinity and no constraints are copied.
+3. **The Python-era data** (before 2026-10-19) is a `pg_dump` at
+   `~/pacestreak-backups/neon-python-2026-10-19.dump`, verified by a full
+   restore. Restore with `pg_restore --no-owner -d <database> <file>`.
+
+## 10. Still to do by hand
 
 Deleting these is permanent:
 
