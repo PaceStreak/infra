@@ -11,7 +11,7 @@ Zone: **`pacestreak.com`**, on Cloudflare (free plan). Nameservers
 | `www` | CNAME | `pacestreak.pages.dev` | Proxied | Canonical public site. |
 | `blog` | CNAME | `pacestreak-blog.pages.dev` | Proxied | Blog. |
 | `app` | CNAME | `pacestreak-app.pages.dev` | Proxied | The product. Written by attaching the custom domain to the Pages project, not by hand. |
-| `api` | Workers custom domain | `pacestreak-api` Worker | Proxied | Created by `wrangler deploy` from the `custom_domain` route in `api/wrangler.jsonc`; never create it by hand. A leftover `_cf-custom-hostname.api` TXT from FastAPI Cloud still resolves (checked 2026-10-21) and is no longer needed. |
+| `api` | Workers custom domain | `pacestreak-api` Worker | Proxied | Created by `wrangler deploy` from the `custom_domain` route in `api/wrangler.jsonc`; never create it by hand. |
 | `status` | CNAME | `pacestreak.github.io` | **DNS only** | GitHub Pages must validate the domain to issue its certificate; it cannot do that through Cloudflare's proxy. |
 | `pacestreak.com` | MX ×3 | `mx.zoho.in`, `mx2`, `mx3` | DNS only | Mail. |
 | `pacestreak.com` | TXT | `v=spf1 include:zoho.in ~all` | DNS only | SPF. |

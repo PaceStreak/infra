@@ -327,9 +327,8 @@ Deleting these is permanent:
 - **Upstash:** the old Redis database.
 - **GHCR:** the old `api` container images (PaceStreak org → Packages).
 - **FastAPI Cloud:** the `pacestreak-api` app, if it still exists.
-- **DNS:** the TXT record `_cf-custom-hostname.api`, left over from FastAPI
-  Cloud's custom domain. Nothing uses it.
 
-Done on 2026-10-21: the unused GitHub secret `WORKER_ENV_JSON` (old Neon and
+Done on 2026-10-21: the leftover TXT record `_cf-custom-hostname.api` is
+deleted, and the unused GitHub secret `WORKER_ENV_JSON` (old Neon and
 Upstash credentials) is deleted from `PaceStreak/api`. `/privacy` already
 names only Cloudflare, Brevo and Neon.
