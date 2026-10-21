@@ -1,0 +1,107 @@
+# Builds and checks the docs site (site/) and lints the Markdown it is built
+# from. Deployment is Cloudflare Pages' job, so this deploys nothing; it exists
+# to fail a pull request before it reaches main. The weekly schedule runs the
+# freshness check, which catches drift nobody pushed: a new repository in the
+# organisation, or a live URL that stopped answering.
+
+name: Site
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 4 * * 1" # Mondays 04:17 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: site-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Format, type-check, build, check output
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      # Pinned to commit SHAs, not tags: tags are mutable.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Full history: "Last updated" comes from `git log` per file. A
+          # shallow clone makes the site print no dates rather than wrong ones.
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: site/.nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Type-check
+        run: npm run check
+
+      # Fails on any broken cross-document link or #anchor.
+      - name: Build
+        run: npm run build
+
+      # No style= attribute, inline <style> or inline script; no foreign
+      # origin; 404.html, robots.txt and code.css present.
+      - name: Check the built HTML
+        run: python3 check-html.py dist
+
+  markdown:
+    name: Lint markdown
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
+        with:
+          globs: "*.md"
+
+  freshness:
+    name: Repositories and live URLs are current
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: site/.nvmrc
+
+      # Imports src/data/repos.ts directly (Node strips the types), so no
+      # install is needed. GITHUB_TOKEN can list the org's public repos.
+      - name: Check freshness
+        run: node scripts/check-freshness.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
