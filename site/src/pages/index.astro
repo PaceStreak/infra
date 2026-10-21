@@ -2,6 +2,7 @@
 import Page from "../components/Page.astro";
 import { loadDocs, formatDate } from "../lib/docs";
 import { repos } from "../data/repos";
+import { operations, tags } from "../lib/openapi";
 
 const docs = await loadDocs();
 const home = docs.find((d) => d.route === "/")!;
@@ -67,6 +68,19 @@ const live = repos.filter((r) => r.url && r.live !== false);
           </a>
         </li>
       ))}
+      <li>
+        <a class="card" href="/api">
+          <span class="card__group">Reference</span>
+          <span class="card__title">API reference</span>
+          <span class="card__text">
+            Every endpoint of api.pacestreak.com: parameters, request and response
+            schemas, errors, authentication and a curl example for each.
+          </span>
+          <span class="card__foot">
+            {operations.length} operations · {tags.length} groups
+          </span>
+        </a>
+      </li>
     </ul>
   </section>
 

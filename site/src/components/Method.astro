@@ -1,0 +1,10 @@
+---
+// An HTTP method as a badge. Colours come from the palette (see .method in
+// global.css); the text is the method itself, so colour is never the only cue.
+interface Props {
+  method: string;
+}
+const { method } = Astro.props;
+---
+
+<span class={`method method--${method.toLowerCase()}`}>{method}</span>

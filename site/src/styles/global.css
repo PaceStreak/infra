@@ -1683,8 +1683,8 @@ a.card:hover {
   *,
   *::before,
   *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
   }
 }
 
@@ -1714,7 +1714,7 @@ a.card:hover {
   .site-footer__nav,
   .search,
   .repo-links {
-    display: none !important;
+    display: none;
   }
   .shell,
   .page {
@@ -1725,7 +1725,7 @@ a.card:hover {
     max-width: none;
   }
   .shiki span {
-    color: var(--shiki-light) !important;
+    color: var(--shiki-light);
   }
   .code pre {
     white-space: pre-wrap;
@@ -1750,4 +1750,249 @@ a.card:hover {
   .prose h3 {
     break-after: avoid;
   }
+}
+
+/* ---------- API reference ---------- */
+
+/* Method badges. Contrast, measured against the badge's own fill:
+     GET        link on accent-soft       dark 14.1, light 6.2
+     POST       accent-ink on accent      15.7 in both themes
+     PUT/PATCH  ink on surface-2          dark 15.8, light 15.7
+     DELETE     flame-text on flame-soft  dark 7.5, light 4.9
+   The method is always written out, so colour is never the only cue. */
+.method {
+  display: inline-block;
+  min-width: 3.9rem;
+  padding: 0.12rem 0.4rem;
+  border: 1px solid var(--line-lit);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-align: center;
+  vertical-align: middle;
+}
+.method--get {
+  border-color: var(--link-line);
+  background: var(--accent-soft);
+  color: var(--link);
+}
+.method--post {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.method--delete {
+  border-color: rgb(255 107 53 / 0.45);
+  background: var(--flame-soft);
+  color: var(--flame-text);
+}
+
+.status {
+  display: inline-block;
+  min-width: 2.6rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--line-lit);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+.status--2xx {
+  border-color: var(--link-line);
+  color: var(--link);
+}
+.status--4xx,
+.status--5xx {
+  border-color: rgb(255 107 53 / 0.45);
+  color: var(--flame-text);
+}
+
+.api-auth {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--line-lit);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.api-auth--none {
+  border-style: dashed;
+  color: var(--dim);
+}
+.api-auth--cookie {
+  border-color: rgb(255 107 53 / 0.45);
+  color: var(--flame-text);
+}
+
+.api-op {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
+}
+.prose .api-op__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+.api-op__path {
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+}
+.api-op__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.9rem;
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+.api-op__link {
+  font-size: 0.8rem;
+}
+.prose .api-op h3 {
+  margin-top: 1.6rem;
+  font-size: 0.95rem;
+}
+.api-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.prose th.api-field {
+  padding: 0.6rem 0.8rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.prose tr:first-child th.api-field {
+  border-top: 0;
+}
+.prose tbody th[scope="row"] {
+  text-align: left;
+  vertical-align: top;
+}
+.prose th.api-field--d1 {
+  padding-left: 1.6rem;
+}
+.prose th.api-field--d2 {
+  padding-left: 2.4rem;
+}
+.prose th.api-field--d3 {
+  padding-left: 3.2rem;
+}
+.prose th.api-field--d4,
+.prose th.api-field--d5,
+.prose th.api-field--d6 {
+  padding-left: 4rem;
+}
+.api-enum {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+.prose ul.api-responses {
+  padding: 0;
+  list-style: none;
+}
+.api-response {
+  margin-top: 0.4rem;
+}
+.api-response--shared {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.7rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.api-response__details > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.api-response__details[open] > summary {
+  margin-bottom: 0.6rem;
+}
+.api-response__media {
+  color: var(--dim);
+  font-size: 0.78rem;
+}
+.api-raw {
+  margin-top: 0.6rem;
+}
+.api-raw > summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+.api-raw__code,
+.api-curl {
+  overflow-x: auto;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  scrollbar-width: thin;
+}
+.api-raw__code {
+  max-height: 28rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--code-bg);
+}
+.api-shared__count {
+  color: var(--dim);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.prose ul.api-index__list {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 56rem) {
+  .prose ul.api-index__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.prose .api-index__list li + li {
+  margin-top: 0;
+}
+.prose a.api-index__link {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.prose a.api-index__link:hover {
+  background: var(--surface-2);
+}
+.api-index__link code {
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
 }

@@ -47,6 +47,11 @@ const headings = [
         AGENTS.md
       </a>
     )}
+    {repo.slug === "api" && (
+      <a class="btn btn--ghost" href="/api">
+        API reference
+      </a>
+    )}
     {repo.url && repo.live !== false && (
       <a class="btn btn--ghost" href={repo.url}>
         Live site

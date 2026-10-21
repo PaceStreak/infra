@@ -1,0 +1,165 @@
+---
+import Page from "../../components/Page.astro";
+import Method from "../../components/Method.astro";
+import SchemaTable from "../../components/SchemaTable.astro";
+import { tags, AUTH_LABEL, inlineMd, type Tag } from "../../lib/openapi";
+
+export function getStaticPaths() {
+  return tags.map((tag) => ({ params: { tag: tag.slug }, props: { tag } }));
+}
+
+const { tag } = Astro.props as { tag: Tag };
+const headings = tag.ops.map((o) => ({
+  depth: 2,
+  id: o.anchor,
+  text: `${o.method} ${o.path}`,
+}));
+const where = (i: string) => (i === "path" ? "Path" : "Query");
+---
+
+<Page
+  title={`${tag.label} API`}
+  description={`${tag.blurb} ${tag.ops.length} operations in the PaceStreak API.`}
+  eyebrow="API reference"
+  route={`/api/${tag.slug}`}
+  headings={headings}
+>
+  <p class="lead" slot="lead">
+    {tag.blurb}
+    {tag.ops.length} operations. Base URL <code>https://api.pacestreak.com</code>; see
+    the <a href="/api">overview</a> for authentication, errors and rate limits.
+  </p>
+
+  {tag.ops.map((o) => (
+    <section class="api-op" aria-labelledby={o.anchor}>
+      <h2 id={o.anchor} class="api-op__title">
+        <Method method={o.method} />
+        <code class="api-op__path">{o.path}</code>
+      </h2>
+      <p class="api-op__meta">
+        <span class={`api-auth api-auth--${o.auth}`}>{AUTH_LABEL[o.auth]}</span>
+        <span class="api-op__id">
+          <code>{o.id}</code>
+        </span>
+        <a class="api-op__link" href={`#${o.anchor}`}>
+          Link to this operation
+        </a>
+      </p>
+      <p>{o.summary}</p>
+      {o.description && <p set:html={inlineMd(o.description)} />}
+
+      {o.params.length > 0 && (
+        <>
+          <h3 id={`${o.anchor}-parameters`}>Parameters</h3>
+          <div
+            class="table-wrap"
+            role="region"
+            tabindex="0"
+            aria-labelledby={`${o.anchor}-parameters`}
+          >
+            <table class="api-table">
+              <caption class="sr-only">
+                Parameters of {o.method} {o.path}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">In</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Required</th>
+                  <th scope="col">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {o.params.map((p) => (
+                  <tr>
+                    <th scope="row" class="api-field">
+                      <code>{p.name}</code>
+                    </th>
+                    <td>{where(p.in)}</td>
+                    <td>
+                      <code>{p.type}</code>
+                    </td>
+                    <td>{p.required ? "Required" : "Optional"}</td>
+                    <td>
+                      {p.description && <span set:html={inlineMd(p.description)} />}
+                      {p.values.length > 0 && (
+                        <span class="api-enum">One of: {p.values.join(", ")}</span>
+                      )}
+                      {p.notes.length > 0 && (
+                        <span class="api-enum">{p.notes.join("; ")}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {o.body && (
+        <>
+          <h3 id={`${o.anchor}-body`}>Request body</h3>
+          <p class="api-note">
+            <code>{o.body.media}</code>, {o.body.required ? "required" : "optional"}.
+          </p>
+          <SchemaTable
+            schema={o.body.schema}
+            label={`Request body of ${o.method} ${o.path}`}
+          />
+        </>
+      )}
+
+      <h3 id={`${o.anchor}-responses`}>Responses</h3>
+      <ul class="api-responses">
+        {o.responses.map((r) =>
+          r.shared ? (
+            <li class="api-response api-response--shared">
+              <span class={`status status--${r.status[0]}xx`}>{r.status}</span>
+              <span>{r.description}</span>
+              <a href={`/api#response-${r.shared.toLowerCase()}`}>Error shape</a>
+            </li>
+          ) : (
+            <li class="api-response">
+              <details class="api-response__details" open={r.status.startsWith("2")}>
+                <summary>
+                  <span class={`status status--${r.status[0]}xx`}>{r.status}</span>
+                  <span>{r.description}</span>
+                  {r.media && <code class="api-response__media">{r.media}</code>}
+                </summary>
+                {r.headers.length > 0 && (
+                  <p class="api-note">Headers: {r.headers.join(", ")}</p>
+                )}
+                {r.schema ? (
+                  <SchemaTable
+                    schema={r.schema}
+                    label={`Response ${r.status} of ${o.method} ${o.path}`}
+                  />
+                ) : (
+                  <p class="api-note">No body.</p>
+                )}
+              </details>
+            </li>
+          ),
+        )}
+      </ul>
+
+      <h3 id={`${o.anchor}-example`}>Example</h3>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__lang">curl</span>
+          <button
+            class="code__copy"
+            type="button"
+            hidden
+            aria-label="Copy code to clipboard"
+          >
+            Copy
+          </button>
+        </div>
+        <pre class="api-curl">{o.curl}</pre>
+      </div>
+    </section>
+  ))}
+</Page>

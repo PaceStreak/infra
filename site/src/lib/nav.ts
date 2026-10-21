@@ -1,5 +1,6 @@
 import { loadDocs } from "./docs";
 import { repos } from "../data/repos";
+import { tags } from "./openapi";
 
 export interface NavItem {
   href: string;
@@ -25,6 +26,13 @@ export async function navGroups(): Promise<NavGroup[]> {
         { href: "/stack", label: "Product and stack" },
         { href: "/repos", label: "Repositories" },
         ...repos.map((r) => ({ href: `/repos/${r.slug}`, label: r.name })),
+      ],
+    },
+    {
+      title: "API reference",
+      items: [
+        { href: "/api", label: "Overview" },
+        ...tags.map((t) => ({ href: `/api/${t.slug}`, label: t.label })),
       ],
     },
     { title: "Project", items: of("Project") },

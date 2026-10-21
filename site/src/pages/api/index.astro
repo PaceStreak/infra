@@ -1,0 +1,196 @@
+---
+import Page from "../../components/Page.astro";
+import Method from "../../components/Method.astro";
+import SchemaTable from "../../components/SchemaTable.astro";
+import {
+  spec,
+  tags,
+  operations,
+  deref,
+  inlineMd,
+  opUrl,
+  type Schema,
+} from "../../lib/openapi";
+
+const headings = [
+  { depth: 2, id: "base-urls", text: "Base URLs" },
+  { depth: 2, id: "authentication", text: "Authentication" },
+  { depth: 2, id: "errors", text: "Errors" },
+  { depth: 2, id: "rate-limits", text: "Rate limits" },
+  { depth: 2, id: "free-plan", text: "Free-plan notes" },
+  { depth: 2, id: "operations", text: "Operations" },
+  ...tags.map((t) => ({ depth: 3, id: `tag-${t.slug}`, text: t.label })),
+];
+const schemes = spec.components.securitySchemes;
+const shared = Object.entries(spec.components.responses).map(([name, r]) => {
+  const [media, mt] = Object.entries(r.content ?? {})[0] ?? [];
+  return {
+    name,
+    id: `response-${name.toLowerCase()}`,
+    description: r.description ?? "",
+    media,
+    schema: mt ? deref(mt.schema as Schema) : null,
+    headers: Object.keys(r.headers ?? {}),
+  };
+});
+const count = (s: string) =>
+  operations.filter((o) => o.responses.some((r) => r.shared === s)).length;
+---
+
+<Page
+  title="API reference"
+  description={`Every endpoint of the PaceStreak API: ${operations.length} operations, generated from the live router's OpenAPI document.`}
+  eyebrow="API reference"
+  route="/api"
+  headings={headings}
+>
+  <p class="lead" slot="lead">
+    {operations.length} operations in {tags.length} groups, rendered from{" "}
+    <a href="https://github.com/PaceStreak/api/blob/main/openapi.json">openapi.json</a>,
+    which the API generates from its router. OpenAPI {spec.openapi}.
+  </p>
+
+  <section class="doc-section" aria-labelledby="base-urls">
+    <h2 id="base-urls">Base URLs</h2>
+    <div class="table-wrap" role="region" tabindex="0" aria-labelledby="base-urls">
+      <table class="api-table">
+        <thead>
+          <tr>
+            <th scope="col">Environment</th>
+            <th scope="col">URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {spec.servers.map((s) => (
+            <tr>
+              <th scope="row">{s.description}</th>
+              <td>
+                <code>{s.url}</code>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Every product route is under <code>/v1</code>. Requests and responses are JSON
+      unless an operation says otherwise. Browsers reach the API only from{" "}
+      <code>https://app.pacestreak.com</code>: CORS names that origin explicitly,
+      because credentials are involved. Staging sends no real mail; sign-in codes go to
+      its log.
+    </p>
+  </section>
+
+  <section class="doc-section" aria-labelledby="authentication">
+    <h2 id="authentication">Authentication</h2>
+    <p>
+      Each operation shows what it needs:{" "}
+      <span class="api-auth api-auth--bearer">Bearer token</span>,{" "}
+      <span class="api-auth api-auth--cookie">Session cookie + CSRF</span> or{" "}
+      <span class="api-auth api-auth--none">No auth</span>.
+    </p>
+    <h3 id="bearer-token">Bearer token</h3>
+    <p set:html={inlineMd(schemes.bearerAuth?.description ?? "")} />
+    <p>
+      Access tokens are short-lived JWTs (15 minutes). Sign-in and{" "}
+      <code>POST /v1/auth/refresh</code> return a fresh one.
+    </p>
+    <h3 id="session-cookie">Session cookie</h3>
+    <p set:html={inlineMd(schemes.refreshCookie?.description ?? "")} />
+    <p>
+      The cookie is <code>__Secure-</code>, not <code>__Host-</code>, because it must
+      carry <code>Domain=pacestreak.com</code> to reach the API from the app.{" "}
+      <code>SameSite=Lax</code> is enough: the hosts are cross-origin but same-site.
+      Sign-up, sign-in, forgot-password, resend-verification and recover also need a
+      Cloudflare Turnstile token, so they cannot be scripted with curl alone.
+    </p>
+  </section>
+
+  <section class="doc-section" aria-labelledby="errors">
+    <h2 id="errors">Errors</h2>
+    <p>
+      Errors are JSON. Most carry <code>detail</code>, usually a string; validation
+      failures carry a list of problems instead, and the per-IP limiter answers with{" "}
+      <code>error</code>. These shared responses are linked from every operation that
+      can return them.
+    </p>
+    {shared.map((r) => (
+      <section class="api-shared" aria-labelledby={r.id}>
+        <h3 id={r.id}>
+          {r.name} <span class="api-shared__count">({count(r.name)} operations)</span>
+        </h3>
+        <p set:html={inlineMd(r.description)} />
+        {r.headers.length > 0 && (
+          <p class="api-note">Headers: {r.headers.join(", ")}</p>
+        )}
+        {r.schema && (
+          <SchemaTable schema={r.schema} label={`${r.name} response body`} />
+        )}
+      </section>
+    ))}
+  </section>
+
+  <section class="doc-section" aria-labelledby="rate-limits">
+    <h2 id="rate-limits">Rate limits</h2>
+    <p>
+      Two kinds, both answered with <code>429</code> and <code>Retry-After</code>:
+    </p>
+    <ul>
+      <li>
+        <strong>Per IP, per endpoint, per minute</strong>, on the unauthenticated and
+        mail-sending routes: 5 for sign-up, 10 for sign-in and two-factor, 3 for the
+        password and verification mails, 30 elsewhere. The body is{" "}
+        <code>{`{"error": "Rate limit exceeded: 10 per 1 minute"}`}</code>. Workers'
+        Rate Limiting binding enforces it, so nothing is written to the database.
+      </li>
+      <li>
+        <strong>Per user</strong>, on writes that could be abused: a counter row checked
+        in the same batch as the write, so a rejected call changes nothing else. The
+        body is <code>{`{"detail": "…"}`}</code>.
+      </li>
+    </ul>
+  </section>
+
+  <section class="doc-section" aria-labelledby="free-plan">
+    <h2 id="free-plan">Free-plan notes</h2>
+    <p>
+      The API is one Cloudflare Worker on the Workers Free plan, which shapes what it
+      can do per request. See <a href="/stack#free-plan-limits">Free-plan limits</a>.
+    </p>
+    <ul>
+      <li>10 ms of CPU per request: heavy work goes to the queue or a cron trigger.</li>
+      <li>
+        50 D1 queries per invocation, so a single request cannot fan out over many rows
+        one query at a time.
+      </li>
+      <li>100,000 requests a day across the account.</li>
+      <li>
+        Mail goes through Brevo's free tier, 300 a day, shared by sign-in codes, resets,
+        reminders and alerts.
+      </li>
+    </ul>
+  </section>
+
+  <section class="doc-section" aria-labelledby="operations">
+    <h2 id="operations">Operations</h2>
+    {tags.map((t) => (
+      <section class="api-index" aria-labelledby={`tag-${t.slug}`}>
+        <h3 id={`tag-${t.slug}`}>
+          <a href={`/api/${t.slug}`}>{t.label}</a>{" "}
+          <span class="api-shared__count">({t.ops.length})</span>
+        </h3>
+        <p class="api-note">{t.blurb}</p>
+        <ul class="api-index__list">
+          {t.ops.map((o) => (
+            <li>
+              <a class="api-index__link" href={opUrl(o)}>
+                <Method method={o.method} />
+                <code>{o.path}</code>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </section>
+</Page>

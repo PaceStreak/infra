@@ -1,0 +1,72 @@
+---
+// A JSON Schema as a nested property table, plus the raw schema in a
+// <details> (no script). $refs are already resolved by src/lib/openapi.ts.
+import { rows, typeLabel, isEmpty, inlineMd, type Schema } from "../lib/openapi";
+
+interface Props {
+  schema: Schema;
+  /** Accessible name for the table, e.g. "Request body of postAuthLogin". */
+  label: string;
+}
+const { schema, label } = Astro.props;
+const list = rows(schema);
+const empty = isEmpty(schema);
+---
+
+{empty ? (
+  <p class="api-note">Any JSON; the schema does not describe this body.</p>
+) : list.length === 0 ? (
+  <p class="api-note">
+    <code>{typeLabel(schema)}</code>
+    {schema.description && <Fragment set:html={` — ${inlineMd(schema.description)}`} />}
+  </p>
+) : (
+  <>
+    {schema.description && (
+      <p class="api-note" set:html={inlineMd(schema.description)} />
+    )}
+    <div class="table-wrap" role="region" tabindex="0" aria-label={label}>
+      <table class="api-table">
+        <caption class="sr-only">{label}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Field</th>
+            <th scope="col">Type</th>
+            <th scope="col">Required</th>
+            <th scope="col">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((r) => (
+            <tr>
+              <th scope="row" class={`api-field api-field--d${Math.min(r.depth, 6)}`}>
+                <code>{r.name}</code>
+              </th>
+              <td>
+                <code>{r.type}</code>
+              </td>
+              <td>{r.required ? "Required" : "Optional"}</td>
+              <td>
+                {r.description && <span set:html={inlineMd(r.description)} />}
+                {r.values.length > 0 && (
+                  <span class="api-enum">
+                    One of: <code>{r.values.join(", ")}</code>
+                  </span>
+                )}
+                {r.notes.length > 0 && (
+                  <span class="api-enum">{r.notes.join("; ")}</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </>
+)}
+{!empty && (
+  <details class="api-raw">
+    <summary>JSON Schema</summary>
+    <pre class="api-raw__code">{JSON.stringify(schema, null, 2)}</pre>
+  </details>
+)}
