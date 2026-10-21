@@ -81,13 +81,19 @@ if (!offline) {
         try {
           const res = await fetch(r.url, {
             redirect: "manual",
-            // Same user agent as Upptime (status/.upptimerc.yml): from GitHub's
-            // runners, Cloudflare's bot protection answers 403 to anything else.
             headers: { "User-Agent": "PaceStreak" },
             signal: AbortSignal.timeout(20000),
           });
+          // From GitHub's runners Cloudflare's bot protection can challenge
+          // the request (403 with a cf-mitigated header). That says nothing
+          // about whether the site is up, which is Upptime's job, so it warns.
+          const mitigated = res.headers.get("cf-mitigated");
           if (res.status >= 200 && res.status < 400)
             console.log(`ok   ${r.url} ${res.status}`);
+          else if (mitigated)
+            warn(
+              `${r.name}: ${r.url} was challenged by Cloudflare (${mitigated}), not checked`,
+            );
           else fail(`${r.name}: ${r.url} answered ${res.status}`);
         } catch (e) {
           fail(`${r.name}: ${r.url} did not answer (${e.cause?.code ?? e.name})`);
