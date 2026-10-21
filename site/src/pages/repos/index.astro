@@ -1,0 +1,43 @@
+---
+import Page from "../../components/Page.astro";
+import { repos, ORG_URL } from "../../data/repos";
+
+const deployLabel = {
+  pages: "Cloudflare Pages",
+  workers: "Workers Builds",
+  "github-pages": "GitHub Pages",
+  none: "No deploy",
+};
+---
+
+<Page
+  title="Repositories"
+  description="Every repository in the PaceStreak GitHub organisation: what it is, where it runs, and how it deploys."
+  eyebrow="PaceStreak"
+  route="/repos"
+  wide
+>
+  <p class="lead" slot="lead">
+    Every repository in the <a href={ORG_URL}>PaceStreak organisation</a>. All are
+    public. CI fails if the organisation and this list ever disagree.
+  </p>
+  <ul class="card-grid">
+    {repos.map((r) => (
+      <li>
+        <a class="card" href={`/repos/${r.slug}`}>
+          <span class="card__group">
+            {r.licence} · {r.branch}
+          </span>
+          <span class="card__title card__title--mono">{r.name}</span>
+          <span class="card__text">{r.summary}</span>
+          <span class="card__foot">
+            <span class:list={["badge", "badge--decided"]}>
+              {deployLabel[r.deployKind]}
+            </span>
+            {r.url && r.live !== false && <span>{new URL(r.url).host}</span>}
+          </span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</Page>

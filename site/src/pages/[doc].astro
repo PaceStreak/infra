@@ -1,0 +1,25 @@
+---
+import Page from "../components/Page.astro";
+import { loadDocs, type Doc } from "../lib/docs";
+
+export async function getStaticPaths() {
+  const docs = await loadDocs();
+  return docs
+    .filter((d) => d.route !== "/")
+    .map((doc) => ({ params: { doc: doc.route.slice(1) }, props: { doc } }));
+}
+
+const { doc } = Astro.props as { doc: Doc };
+---
+
+<Page
+  title={doc.title}
+  description={doc.lead || doc.title}
+  eyebrow={doc.group}
+  route={doc.route}
+  headings={doc.headings}
+  file={doc.file}
+  updated={doc.updated}
+>
+  <Fragment set:html={doc.html} />
+</Page>

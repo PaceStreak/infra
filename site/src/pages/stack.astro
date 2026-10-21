@@ -1,0 +1,235 @@
+---
+import Page from "../components/Page.astro";
+import { architectureSvg } from "../lib/architecture";
+import { repos } from "../data/repos";
+
+const headings = [
+  { depth: 2, id: "architecture", text: "Architecture" },
+  { depth: 2, id: "what-runs-where", text: "What runs where" },
+  { depth: 2, id: "free-plan-limits", text: "Free-plan limits" },
+  { depth: 2, id: "deploying", text: "How each part deploys" },
+  { depth: 2, id: "status", text: "Status and monitoring" },
+];
+const live = repos.filter((r) => r.url && r.live !== false);
+---
+
+<Page
+  title="Product and stack"
+  description="How PaceStreak fits together: Cloudflare Pages, the API Worker and its storage, mail, bot protection, backups and monitoring."
+  eyebrow="PaceStreak"
+  route="/stack"
+  headings={headings}
+>
+  <p class="lead" slot="lead">
+    PaceStreak is a habit and streak tracker. Static sites, one API Worker, and no
+    server anyone has to patch. Facts here are summarised from the repositories and from{" "}
+    <a href="/topology">Topology</a> and the{" "}
+    <a href="/operating-guide">Operating guide</a>, which are the detailed sources.
+  </p>
+
+  <section class="doc-section" aria-labelledby="architecture">
+    <h2 id="architecture">Architecture</h2>
+    <figure class="diagram">
+      <div
+        class="diagram__scroll"
+        role="group"
+        tabindex="0"
+        aria-label="Architecture diagram, scrollable"
+      >
+        <Fragment set:html={architectureSvg()} />
+      </div>
+      <figcaption>
+        Solid arrows are requests and data; dashed ones are Turnstile verification and
+        the nightly backup. The Pages sites, the Worker, Turnstile and the cron triggers
+        are all Cloudflare.
+      </figcaption>
+    </figure>
+    <ul>
+      <li>
+        <strong>Browser to sites.</strong> www, blog and app are static builds on
+        Cloudflare Pages. The public site and the blog make no API calls; only the app
+        does.
+      </li>
+      <li>
+        <strong>App to API.</strong> The app calls <code>api.pacestreak.com</code> with
+        a session cookie scoped to <code>pacestreak.com</code> (<code>__Secure-</code>,{" "}
+        <code>SameSite=Lax</code>), with CORS naming the app's origin explicitly.
+      </li>
+      <li>
+        <strong>The Worker.</strong> TypeScript and Hono, about 265 routes under{" "}
+        <code>/v1</code>, with D1 for data, R2 for photos, a queue with a dead-letter
+        queue for jobs, and three cron triggers.
+      </li>
+      <li>
+        <strong>Mail.</strong> Brevo SMTP sends sign-in codes, resets, reminders,
+        digests and error alerts. Zoho handles <code>hello@</code>.
+      </li>
+      <li>
+        <strong>Bot protection.</strong> Cloudflare Turnstile guards signup, login,
+        forgot-password, resend-verification and recover: the one third-party script, on
+        the app only.
+      </li>
+      <li>
+        <strong>Backups.</strong> D1 Time Travel (7 days on Free) plus a nightly copy
+        into Neon Postgres by a GitHub Actions workflow in <code>api</code>.
+      </li>
+      <li>
+        <strong>Monitoring.</strong> Upptime, running on GitHub Actions every five
+        minutes, checks each host and certificate and publishes status.pacestreak.com.
+      </li>
+    </ul>
+  </section>
+
+  <section class="doc-section" aria-labelledby="what-runs-where">
+    <h2 id="what-runs-where">What runs where</h2>
+    <div
+      class="table-wrap"
+      role="region"
+      tabindex="0"
+      aria-labelledby="what-runs-where"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Host</th>
+            <th>Repository</th>
+            <th>Stack</th>
+            <th>Platform</th>
+          </tr>
+        </thead>
+        <tbody>
+          {live.map((r) => (
+            <tr>
+              <td>
+                <a href={r.url}>{new URL(r.url!).host}</a>
+              </td>
+              <td>
+                <a href={`/repos/${r.slug}`}>{r.name}</a>
+              </td>
+              <td>{r.stack.slice(0, 3).join(", ")}</td>
+              <td>
+                {r.deployKind === "workers"
+                  ? "Cloudflare Workers"
+                  : r.deployKind === "github-pages"
+                    ? "GitHub Pages"
+                    : "Cloudflare Pages"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="doc-section" aria-labelledby="free-plan-limits">
+    <h2 id="free-plan-limits">Free-plan limits</h2>
+    <p>
+      The API runs on the Workers <strong>Free</strong> plan, the owner's choice: try
+      Free first. These limits shape the code, and are why some work is batched or
+      deferred.
+    </p>
+    <div
+      class="table-wrap"
+      role="region"
+      tabindex="0"
+      aria-labelledby="free-plan-limits"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Limit</th>
+            <th>Free plan</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CPU per request or cron</td>
+            <td>10 ms</td>
+            <td>
+              No <code>cpu_ms</code> setting allowed.
+            </td>
+          </tr>
+          <tr>
+            <td>D1 queries per invocation</td>
+            <td>50</td>
+            <td>The code budgets 45.</td>
+          </tr>
+          <tr>
+            <td>Subrequests per invocation</td>
+            <td>50</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Requests per day</td>
+            <td>100,000</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Cron triggers per account</td>
+            <td>5</td>
+            <td>Production uses 3, so staging has none.</td>
+          </tr>
+          <tr>
+            <td>D1 Time Travel</td>
+            <td>7 days</td>
+            <td>Neon holds the off-host copy.</td>
+          </tr>
+          <tr>
+            <td>Brevo mail</td>
+            <td>300 a day</td>
+            <td>Shared by every email the product sends.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Moving to Workers Paid ($5 a month) lifts the Worker limits; the{" "}
+      <a href="/operating-guide">Operating guide</a> compares the two.
+    </p>
+  </section>
+
+  <section class="doc-section" aria-labelledby="deploying">
+    <h2 id="deploying">How each part deploys</h2>
+    <ul>
+      <li>
+        <strong>web, blog, app:</strong> push to <code>main</code>; the Git-connected
+        Cloudflare Pages project builds and deploys it.
+      </li>
+      <li>
+        <strong>api:</strong> push to <code>main</code>; Workers Builds runs{" "}
+        <code>pnpm run build</code>, then{" "}
+        <code>
+          pnpm wrangler d1 migrations apply pacestreak --remote &amp;&amp; pnpm wrangler
+          deploy
+        </code>
+        . Staging is deployed by hand with <code>--env staging</code>.
+      </li>
+      <li>
+        <strong>status:</strong> GitHub Pages, built by Upptime's workflows.
+      </li>
+      <li>
+        <strong>docs (this site):</strong> built from <code>infra/site</code>; see{" "}
+        <a href="/repos/infra">infra</a>.
+      </li>
+    </ul>
+  </section>
+
+  <section class="doc-section" aria-labelledby="status">
+    <h2 id="status">Status and monitoring</h2>
+    <ul>
+      <li>
+        <a href="https://status.pacestreak.com">status.pacestreak.com</a>: PaceStreak's
+        own monitors.
+      </li>
+      <li>
+        <a href="https://www.cloudflarestatus.com">cloudflarestatus.com</a>:
+        Cloudflare's platform status.
+      </li>
+      <li>
+        The hourly <code>error_alerts</code> job emails new server errors; the{" "}
+        <a href="/runbook">Runbook</a> covers what to do next.
+      </li>
+    </ul>
+  </section>
+</Page>

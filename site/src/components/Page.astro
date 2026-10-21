@@ -1,0 +1,115 @@
+---
+import Base from "../layouts/Base.astro";
+import { prevNext } from "../lib/nav";
+import { formatDate, type GitMeta } from "../lib/docs";
+import { blobUrl, editUrl, historyUrl } from "../lib/registry";
+import type { Heading } from "../lib/render";
+
+interface Props {
+  title: string;
+  description: string;
+  eyebrow: string;
+  route: string;
+  headings?: Heading[];
+  /** Root Markdown file this page renders, for the source links. */
+  file?: string;
+  updated?: GitMeta | null;
+  wide?: boolean;
+}
+
+const {
+  title,
+  description,
+  eyebrow,
+  route,
+  headings = [],
+  file,
+  updated,
+  wide = false,
+} = Astro.props;
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const { prev, next } = await prevNext(route);
+---
+
+<Base title={title} description={description}>
+  <div class:list={["page", { "page--wide": wide, "page--toc": toc.length > 1 }]}>
+    <article class="article">
+      <header class="article__head">
+        <p class="eyebrow">{eyebrow}</p>
+        <h1 class="article__title">{title}</h1>
+        <slot name="lead" />
+        {file && (
+          <p class="meta">
+            {updated && (
+              <span class="meta__item">
+                Last updated{" "}
+                <a href={historyUrl(file)}>
+                  <time datetime={updated.iso}>{formatDate(updated.iso)}</time>
+                </a>
+              </span>
+            )}
+            <a class="meta__item" href={editUrl(file)}>
+              Edit on GitHub
+            </a>
+            <a class="meta__item" href={blobUrl(file)}>
+              View source
+            </a>
+          </p>
+        )}
+      </header>
+
+      {toc.length > 1 && (
+        <details class="toc-inline">
+          <summary>On this page</summary>
+          <ol>
+            {toc.map((h) => (
+              <li class={`toc-d${h.depth}`}>
+                <a href={`#${h.id}`}>{h.text}</a>
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
+
+      <div class="prose">
+        <slot />
+      </div>
+
+      {(prev || next) && (
+        <nav class="pager" aria-label="Previous and next page">
+          {prev ? (
+            <a class="pager__link pager__link--prev" href={prev.href} rel="prev">
+              <span class="pager__dir">Previous</span>
+              <span class="pager__label">{prev.label}</span>
+            </a>
+          ) : (
+            <span />
+          )}
+          {next && (
+            <a class="pager__link pager__link--next" href={next.href} rel="next">
+              <span class="pager__dir">Next</span>
+              <span class="pager__label">{next.label}</span>
+            </a>
+          )}
+        </nav>
+      )}
+    </article>
+
+    {toc.length > 1 && (
+      <aside class="toc" aria-labelledby="toc-title">
+        <p id="toc-title" class="toc__title">
+          On this page
+        </p>
+        <ol class="toc__list">
+          {toc.map((h) => (
+            <li class={`toc-d${h.depth}`}>
+              <a class="toc__link" href={`#${h.id}`} data-toc={h.id}>
+                {h.text}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+    )}
+  </div>
+</Base>

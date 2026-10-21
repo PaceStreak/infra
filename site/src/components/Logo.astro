@@ -1,0 +1,17 @@
+---
+// The lime bolt: a badge with the bolt knocked out, as in favicon.svg.
+// Drawn with even-odd fill rather than a mask, so it needs no ids and can
+// appear more than once on a page.
+interface Props {
+  size?: number;
+}
+const { size = 26 } = Astro.props;
+---
+
+<svg class="logo" viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
+  <path
+    class="logo__badge"
+    fill-rule="evenodd"
+    d="M15 0h34a15 15 0 0 1 15 15v34a15 15 0 0 1-15 15H15A15 15 0 0 1 0 49V15A15 15 0 0 1 15 0ZM39 5 8 39h19L25 59 56 25H37L39 5Z"
+  ></path>
+</svg>

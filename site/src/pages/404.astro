@@ -1,0 +1,32 @@
+---
+import Base from "../layouts/Base.astro";
+import { loadDocs } from "../lib/docs";
+
+const docs = await loadDocs();
+---
+
+<Base title="Page not found" description="There is no page at this address.">
+  <div class="page">
+    <article class="article notfound">
+      <p class="eyebrow">404</p>
+      <h1 class="article__title">No page here</h1>
+      <p class="lead">
+        The address may be from an older version of these docs, or mistyped. Search with{" "}
+        <kbd>/</kbd>, or pick a document:
+      </p>
+      <ul class="notfound__list">
+        {docs.map((d) => (
+          <li>
+            <a href={d.route}>{d.title}</a>
+          </li>
+        ))}
+        <li>
+          <a href="/stack">Product and stack</a>
+        </li>
+        <li>
+          <a href="/repos">Repositories</a>
+        </li>
+      </ul>
+    </article>
+  </div>
+</Base>

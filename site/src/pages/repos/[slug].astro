@@ -1,0 +1,144 @@
+---
+import Page from "../../components/Page.astro";
+import { repos, repoUrl, repoFile, type Repo } from "../../data/repos";
+import { formatDate } from "../../lib/docs";
+
+export function getStaticPaths() {
+  return repos.map((repo) => ({ params: { slug: repo.slug }, props: { repo } }));
+}
+
+const { repo } = Astro.props as { repo: Repo };
+const md = (t: string) =>
+  t
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+const headings = [
+  { depth: 2, id: "at-a-glance", text: "At a glance" },
+  { depth: 2, id: "deploy", text: "Deploying" },
+  ...(repo.ci.length ? [{ depth: 2, id: "ci", text: "CI checks" }] : []),
+  { depth: 2, id: "rules", text: "Load-bearing rules" },
+];
+---
+
+<Page
+  title={repo.name}
+  description={repo.summary}
+  eyebrow="Repository"
+  route={`/repos/${repo.slug}`}
+  headings={headings}
+>
+  <p class="lead" slot="lead">
+    {repo.summary}
+  </p>
+
+  <p class="repo-links">
+    <a class="btn" href={repoUrl(repo)}>
+      Open on GitHub
+    </a>
+    {repo.files.readme && (
+      <a class="btn btn--ghost" href={repoFile(repo, "README.md")}>
+        README
+      </a>
+    )}
+    {repo.files.agents && (
+      <a class="btn btn--ghost" href={repoFile(repo, "AGENTS.md")}>
+        AGENTS.md
+      </a>
+    )}
+    {repo.url && repo.live !== false && (
+      <a class="btn btn--ghost" href={repo.url}>
+        Live site
+      </a>
+    )}
+  </p>
+
+  <section class="doc-section" aria-labelledby="at-a-glance">
+    <h2 id="at-a-glance">At a glance</h2>
+    <dl class="facts">
+      <div>
+        <dt>Repository</dt>
+        <dd>
+          <code>PaceStreak/{repo.name}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Live</dt>
+        <dd>
+          {repo.url ? (
+            repo.live === false ? (
+              <span>{repo.url} (not deployed yet)</span>
+            ) : (
+              <a href={repo.url}>{repo.url}</a>
+            )
+          ) : (
+            "Nothing served"
+          )}
+        </dd>
+      </div>
+      <div>
+        <dt>Default branch</dt>
+        <dd>
+          <code>{repo.branch}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Licence</dt>
+        <dd>{repo.licence}</dd>
+      </div>
+      <div>
+        <dt>Visibility</dt>
+        <dd>{repo.visibility}</dd>
+      </div>
+      <div>
+        <dt>Stack</dt>
+        <dd>{repo.stack.join(", ")}</dd>
+      </div>
+      <div>
+        <dt>Facts verified</dt>
+        <dd>
+          <time datetime={repo.verified}>{formatDate(repo.verified)}</time>
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="doc-section" aria-labelledby="deploy">
+    <h2 id="deploy">Deploying</h2>
+    <div class="callout">
+      <p set:html={md(repo.deploy)} />
+    </div>
+  </section>
+
+  {repo.ci.length > 0 && (
+    <section class="doc-section" aria-labelledby="ci">
+      <h2 id="ci">CI checks</h2>
+      <ul>
+        {repo.ci.map((c) => (
+          <li set:html={md(c)} />
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <section class="doc-section" aria-labelledby="rules">
+    <h2 id="rules">Load-bearing rules</h2>
+    <ul>
+      {repo.rules.map((r) => (
+        <li set:html={md(r)} />
+      ))}
+    </ul>
+    {repo.files.agents && (
+      <p>
+        The full list is in the repository's{" "}
+        <a href={repoFile(repo, "AGENTS.md")}>AGENTS.md</a>; workspace-wide rules are in
+        the root{" "}
+        <a href="https://github.com/PaceStreak/pacestreak/blob/main/AGENTS.md">
+          AGENTS.md
+        </a>
+        .
+      </p>
+    )}
+  </section>
+</Page>

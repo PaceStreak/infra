@@ -1,0 +1,27 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Robots-Tag: noindex, nofollow
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()
+
+# Stricter than the blog: no 'unsafe-inline' anywhere, styles included.
+# Shiki's per-token colours are turned into classes at build time
+# (transformerStyleToClass) and served from /code.css, and check-html.py fails
+# the build if any `style=` attribute, inline <style> or inline script body
+# reaches dist/. The theme is set before first paint by /theme.js, an external
+# blocking script, not an inline one.
+
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Page routes, and the files beside them, only, so no-transform never merges
+# with the immutable rule above. no-transform stops the edge rewriting HTML
+# (Web Analytics once injected a beacon the CSP then blocked).
+/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/:page
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/repos/:slug
+  Cache-Control: public, max-age=0, must-revalidate, no-transform

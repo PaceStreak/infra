@@ -1,0 +1,131 @@
+---
+import Page from "../components/Page.astro";
+import { loadDocs, formatDate } from "../lib/docs";
+import { repos } from "../data/repos";
+
+const docs = await loadDocs();
+const home = docs.find((d) => d.route === "/")!;
+const cards = docs.filter((d) => d.route !== "/");
+const changelog = docs.find((d) => d.file === "CHANGELOG.md");
+
+// "Recently changed": the newest dated entries in CHANGELOG.md, read from its
+// rendered sections so it can never disagree with the changelog page.
+interface Change {
+  date: string;
+  id: string;
+  items: { kind: string; text: string }[];
+}
+const changes: Change[] = [];
+for (const s of changelog?.sections ?? []) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s.heading)) {
+    changes.push({ date: s.heading, id: s.id, items: [] });
+  } else if (changes.length && s.text) {
+    const first = s.text.split(/(?<=[.!?])\s/)[0];
+    changes[changes.length - 1].items.push({
+      kind: s.heading,
+      text:
+        first.length > 170 ? first.slice(0, 168).replace(/\s+\S*$/, "") + "…" : first,
+    });
+  }
+}
+const recent = changes.slice(0, 3);
+
+const live = repos.filter((r) => r.url && r.live !== false);
+---
+
+<Page
+  title="PaceStreak docs"
+  description={home.lead}
+  eyebrow="Infrastructure and operations"
+  route="/"
+  file={home.file}
+  updated={home.updated}
+  wide
+>
+  <p class="lead" slot="lead">
+    How PaceStreak is hosted, deployed, monitored and recovered. Every page is built
+    from the Markdown in{" "}
+    <a href="https://github.com/PaceStreak/infra">PaceStreak/infra</a>, so it says
+    exactly what the repository says.
+  </p>
+
+  <section class="home-block" aria-labelledby="docs-title">
+    <h2 id="docs-title" class="home-block__title">
+      Documents
+    </h2>
+    <ul class="card-grid">
+      {cards.map((d) => (
+        <li>
+          <a class="card" href={d.route}>
+            <span class="card__group">{d.group}</span>
+            <span class="card__title">{d.title}</span>
+            <span class="card__text">{d.lead}</span>
+            <span class="card__foot">
+              {d.headings.filter((x) => x.depth === 2).length} sections
+              {d.updated && <> · updated {formatDate(d.updated.iso)}</>}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <div class="home-split">
+    <section class="home-block" aria-labelledby="recent-title">
+      <h2 id="recent-title" class="home-block__title">
+        Recently changed
+      </h2>
+      <ol class="timeline">
+        {recent.map((c) => (
+          <li class="timeline__item">
+            <a class="timeline__date" href={`/changelog#${c.id}`}>
+              <time datetime={c.date}>{formatDate(c.date)}</time>
+            </a>
+            <ul class="timeline__list">
+              {c.items.slice(0, 3).map((it) => (
+                <li>
+                  <span class="timeline__kind">{it.kind}</span> {it.text}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
+      <a class="more-link" href="/changelog">
+        Full changelog
+      </a>
+    </section>
+
+    <section class="home-block" aria-labelledby="live-title">
+      <h2 id="live-title" class="home-block__title">
+        Live
+      </h2>
+      <ul class="live-list">
+        {live.map((r) => (
+          <li>
+            <a class="live-list__link" href={r.url}>
+              <span class="live-dot" aria-hidden="true" />
+              <span class="live-list__host">{new URL(r.url!).host}</span>
+              <span class="live-list__what">{r.title}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p class="home-links">
+        <a class="more-link" href="/stack">
+          Product and stack
+        </a>
+        <a class="more-link" href="/repos">
+          All repositories
+        </a>
+      </p>
+    </section>
+  </div>
+
+  <section class="home-block home-readme" aria-labelledby="readme-title">
+    <h2 id="readme-title" class="home-block__title">
+      README
+    </h2>
+    <Fragment set:html={home.html} />
+  </section>
+</Page>

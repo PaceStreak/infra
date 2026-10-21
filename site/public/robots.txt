@@ -1,0 +1,3 @@
+# Internal operations documentation: public, but not for search engines.
+User-agent: *
+Disallow: /
