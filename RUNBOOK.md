@@ -143,52 +143,83 @@ dig +short TXT pacestreak.com     # expect v=spf1 include:zoho.in ~all
 
 ## Reminders, digests or deletions stopped (the API is up)
 
-**Symptom:** the status page shows `/health/worker` down while
-`/health/ready` is up; nobody gets streak nudges or the Monday digest.
+**Symptom:** the status page shows `/health/worker` down while `/health` is
+up; nobody gets streak nudges or the Monday digest.
 
-**Cause:** the worker is a scheduled GitHub Actions workflow
-(`api/.github/workflows/worker.yml`, every five minutes), not a process.
-Either the schedule is not firing, the image cannot be pulled, or every tick
-is failing on one job. GitHub delays scheduled runs under load and disables
-them after 60 days without repository activity.
+**Cause:** `/health/worker` answers 503 after 900 s without a scheduler tick.
+The scheduler is the Worker's three cron triggers plus the `pacestreak-jobs`
+queue consumer; there is no GitHub Actions worker any more.
 
 **Fix:** open **Admin → Metrics** in the app, which names the last result of
-each job; a job showing `Failed:` is the place to look. Then:
+each job. Then check, in order:
 
-```bash
-gh run list -R PaceStreak/api --workflow "Worker tick" -L 8   # firing? succeeding?
-gh run view <id> -R PaceStreak/api --log                      # why a tick failed
-gh workflow enable "Worker tick" -R PaceStreak/api            # if GitHub disabled it
-gh workflow run "Worker tick" -R PaceStreak/api               # run one tick now
-```
-
-A failing job never stops the others; it is logged and the tick carries on.
-The endpoint turns healthy again after the next clean tick.
+1. Workers → `pacestreak-api` → Settings → Triggers: three crons listed. A
+   deploy registers them from `wrangler.jsonc`; a hand edit in the dashboard
+   is overwritten by the next deploy.
+2. `pnpm wrangler tail` (or Workers Logs, filter `scheduled`): a tick that
+   throws is logged with the job name. A lease that never expires (240 s)
+   means a tick died mid-run; the next tick after expiry takes over.
+3. Queues → `pacestreak-jobs`: a growing backlog means consumers are failing
+   or slow; see "Messages in the dead-letter queue".
 
 ## A deploy didn't reach the API
 
 **Symptom:** a change merged to `api` `main`, CI is green, but the live API
 behaves as before.
 
-**Cause:** FastAPI Cloud's GitHub integration deploys the API on every push
-to `main`; the schema is changed separately by the `Migrate` workflow.
+**Cause:** almost always that nobody deployed. **Workers Builds is not
+connected**, so a push to `main` deploys nothing.
 
-**Fix:** check each link in order. Run the `fastapi cloud` commands from a
-checkout of `api` (`uvx --from "fastapi[standard]" fastapi cloud ...`).
+**Fix:** from a clean `api` `main`:
 
 ```bash
-gh run list -R PaceStreak/api -L 5                  # CI, Publish image, Migrate
-fastapi cloud deployments list                      # latest status; failure reason
-fastapi cloud logs --no-follow --tail 100           # runtime errors
+pnpm wrangler deployments list                         # what is live, and when
+pnpm wrangler d1 migrations apply pacestreak --remote  # schema first
+pnpm wrangler deploy
 curl -s https://api.pacestreak.com/health
 ```
 
-A deployment stuck in `verifying` means the app crashes on start; the logs
-say why (once it was `No module named 'app'`, fixed by `[tool.fastapi]` in
-`pyproject.toml`). A migration runs about a minute behind the deploy, so a
-failing `Migrate` run (`gh run view <id> --log`) leaves the new code serving
-against the old schema: fix the migration and re-run it with
-`gh workflow run Migrate -R PaceStreak/api`.
+Migrations must stay backward compatible: they land before the code, and
+`pnpm wrangler rollback` returns to the previous Worker version without
+rolling the schema back. Never run `wrangler triggers deploy` casually; it
+counts as a production deployment.
+
+## Messages in the dead-letter queue
+
+A message reaches `pacestreak-jobs-dlq` after six failed attempts. The DLQ's
+consumer (in the same Worker) records each one, and the hourly `error_alerts`
+job emails them. Find the error in `wrangler tail` or Workers Logs by the job
+name, fix and deploy, then send the body back to `pacestreak-jobs` from the
+dashboard. Consumers take one message per invocation because D1 allows 50
+queries per invocation on Free; never raise `max_batch_size`.
+
+## D1 says "overloaded" or queries time out
+
+D1 is single-threaded per database. Look for `D1_ERROR` in Workers Logs and
+at D1 → Metrics query duration. Usual causes: a job slice too large (see
+`SLICE_COSTS` in `src/jobs/dispatch.ts`) or a missing index (`test/explain`).
+A request that exceeds 50 queries fails outright on Free; the code budgets 45
+(`src/lib/plan.ts`), so a new failure here means a path that doesn't respect
+the budget.
+
+## Requests fail with "exceeded CPU" (1102)
+
+**Cause:** the Free plan allows 10 ms CPU per request or cron, with no
+`cpu_ms` setting to raise it. Waiting on D1 or fetch doesn't count; WebCrypto
+work (PBKDF2 at sign-in) does. Look for `exceededCpu` in Workers Logs. An
+import or export that hits it is a bug in the resumable slice code
+(`src/heavy`). Moving to Workers Paid (the `PLAN` var in `wrangler.jsonc`, see
+`api/docs/rewrite/CUTOVER.md`) lifts the limit; weakening hashing never does.
+
+## Restoring the database
+
+1. **D1 Time Travel**, 7 days on Free:
+   `pnpm wrangler d1 time-travel info pacestreak`, then
+   `pnpm wrangler d1 time-travel restore pacestreak --timestamp=<unix>`.
+   A restore rewinds the whole database, every user included.
+2. **Older than 7 days, or D1 itself is gone:** the nightly copy in Neon
+   Postgres, schema `d1_backup`, written by `api/.github/workflows/backup.yml`
+   (23:30 IST). [OPERATING-GUIDE.md](./OPERATING-GUIDE.md) has the commands.
 
 ## Reloading a page in the app lands on Today
 
@@ -224,7 +255,8 @@ returns, check whether someone switched it back on.
 ```bash
 for u in https://pacestreak.com https://www.pacestreak.com \
          https://blog.pacestreak.com https://status.pacestreak.com \
-         https://app.pacestreak.com/habits https://api.pacestreak.com/v1/library; do
+         https://app.pacestreak.com/habits https://api.pacestreak.com/v1/library \
+         https://api.pacestreak.com/health/worker; do
   printf '%-40s %s\n' "$u" "$(curl -sS -o /dev/null -m 20 -w '%{http_code} %{redirect_url}' "$u")"
 done
 ```

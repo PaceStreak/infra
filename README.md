@@ -19,10 +19,11 @@ Copyright (c) 2026 PaceStreak. Licensed under [AGPL-3.0](./LICENSE).
 | `blog.pacestreak.com` | Blog | [`blog`](https://github.com/PaceStreak/blog) | Cloudflare Pages |
 | `status.pacestreak.com` | Public status page | [`status`](https://github.com/PaceStreak/status) | GitHub Pages |
 | `app.pacestreak.com` | The product | [`app`](https://github.com/PaceStreak/app) | Cloudflare Pages (`pacestreak-app`) |
-| `api.pacestreak.com` | Backend: FastAPI, worker | [`api`](https://github.com/PaceStreak/api) | FastAPI Cloud (free plan), scheduled GitHub Actions worker; Neon Postgres, Upstash Redis |
+| `api.pacestreak.com` | Backend: TypeScript (Hono) Worker | [`api`](https://github.com/PaceStreak/api) | Cloudflare Workers (**Free** plan, `pacestreak-api`): D1, R2, Queues, cron triggers; deployed **by hand** with `wrangler` |
 
 Mail has two senders. **Zoho** receives and sends `hello@` (`MX`, SPF, DKIM
-`zmail._domainkey`); **Brevo** sends the app's mail (DKIM `brevo1`/`brevo2`).
+`zmail._domainkey`); **Brevo** sends the app's mail over SMTP from the API Worker (DKIM
+`brevo1`/`brevo2`).
 DMARC is `p=reject`. **Do not touch these when changing web hosting**: they
 are unrelated and easy to delete by accident, and deleting Brevo's DKIM makes
 every app email fail DMARC. See [TOPOLOGY.md](./TOPOLOGY.md).
@@ -33,6 +34,8 @@ every app email fail DMARC. See [TOPOLOGY.md](./TOPOLOGY.md).
   non-obvious reasons behind them
 - **[RUNBOOK.md](./RUNBOOK.md)** — what to do when something breaks, ordered by
   how often it has actually happened
+- **[OPERATING-GUIDE.md](./OPERATING-GUIDE.md)** — the Workers API, email,
+  plans, secrets and backups in day-to-day use
 - **[DECISIONS.md](./DECISIONS.md)** — choices that are expensive to reverse,
   and why they were made
 - [CONTRIBUTING.md](./CONTRIBUTING.md), [SECURITY.md](./SECURITY.md),
@@ -63,7 +66,8 @@ Each is expanded in the runbook with the symptom that led to it.
 
 Terraform for Cloudflare is worth it when there are enough resources that
 drift becomes invisible. Right now there are three Pages projects, one
-FastAPI Cloud app, about fifteen DNS records and one redirect rule: still small enough
+Worker (declared in `api/wrangler.jsonc`, with a staging copy), about fifteen
+DNS records and one redirect rule: still small enough
 that a written record is honest and an unapplied `.tf` file would be a lie
 waiting to happen.
 

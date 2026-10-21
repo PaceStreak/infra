@@ -11,7 +11,7 @@ Zone: **`pacestreak.com`**, on Cloudflare (free plan). Nameservers
 | `www` | CNAME | `pacestreak.pages.dev` | Proxied | Canonical public site. |
 | `blog` | CNAME | `pacestreak-blog.pages.dev` | Proxied | Blog. |
 | `app` | CNAME | `pacestreak-app.pages.dev` | Proxied | The product. Written by attaching the custom domain to the Pages project, not by hand. |
-| `api` | CNAME | `<custom-domain-id>.custom-domains.fastapicloud.dev` | **DNS only** | The API on FastAPI Cloud. Also needs `_fc-dcv.api` and `_cf-custom-hostname.api` (TXT) and `_acme-challenge.api` (CNAME), all DNS only; `fastapi cloud domains list` prints the exact values. |
+| `api` | Workers custom domain | `pacestreak-api` Worker | Proxied | Created by `wrangler deploy` from the `custom_domain` route in `api/wrangler.jsonc`; never create it by hand. A leftover `_cf-custom-hostname.api` TXT from FastAPI Cloud still resolves (checked 2026-10-21) and is no longer needed. |
 | `status` | CNAME | `pacestreak.github.io` | **DNS only** | GitHub Pages must validate the domain to issue its certificate; it cannot do that through Cloudflare's proxy. |
 | `pacestreak.com` | MX ×3 | `mx.zoho.in`, `mx2`, `mx3` | DNS only | Mail. |
 | `pacestreak.com` | TXT | `v=spf1 include:zoho.in ~all` | DNS only | SPF. |
@@ -118,25 +118,49 @@ name and its `pages.dev` hostname can disagree permanently, so **do not infer
 the project name from the `pages.dev` URL** — check `wrangler pages project
 list`.
 
-### `api.pacestreak.com`: FastAPI Cloud, not Pages
+### `api.pacestreak.com`: a Worker with a custom domain
 
-Moved on 11 October 2026 from a GCP `e2-micro` VM behind a Cloudflare Tunnel
-(see `infra/DECISIONS.md`) to FastAPI Cloud's free plan, app `pacestreak-api`,
-region us-east-1. The custom domain was added with
-`fastapi cloud domains add api.pacestreak.com --standard`, which prints the
-four DNS records to create; the record is a **DNS-only** CNAME, so unlike the
-other hostnames here `dig api.pacestreak.com` shows the CNAME chain, not
-Cloudflare's anycast IPs, and Cloudflare's proxy, cache and WAF are not in
-front of the API. The old tunnel and its record no longer exist.
+Since 19 October 2026 the API is the `pacestreak-api` Cloudflare Worker
+(TypeScript, Hono) on the **Workers Free** plan (the owner's choice: try Free
+first). It uses D1 `pacestreak` (location hint `apac`), R2 buckets
+`pacestreak-photos` and `pacestreak-staging`, the queue `pacestreak-jobs` with
+dead-letter queue `pacestreak-jobs-dlq`, and three cron triggers. The DLQ has a
+consumer in the same Worker that records each dead letter for the hourly
+`error_alerts` email. Mail is still Brevo SMTP (`MAILER=smtp`). All of it is
+declared in `api/wrangler.jsonc`.
 
-Deploys come from FastAPI Cloud's GitHub integration on every push to `main`.
-Migrations are applied by the `Migrate` workflow in `api`. The scheduler
-tick (the old `worker` container) is the `Worker tick` workflow in `api`.
+The hostname is a Workers **custom domain**: `wrangler deploy` created the
+proxied record and the certificate when it attached the route to a running
+Worker. Unlike the old DNS-only CNAME, `dig +short api.pacestreak.com` shows
+Cloudflare's anycast IPs and the API sits behind Cloudflare's edge.
 
-Capacity was measured 2 October 2026 on the previous host (about 40-45
-requests a second per process); the free plan is 0.1 vCPU bursting to 0.5, so
-those figures do not carry over. Re-measure with `api/scripts/loadtest.py
---health-only` before relying on them.
+**Deploys are manual.** Workers Builds is not connected, so pushing `api`
+`main` deploys nothing. From a clean `main`:
+`pnpm wrangler d1 migrations apply pacestreak --remote`, then
+`pnpm wrangler deploy`. `wrangler triggers deploy` also counts as a production
+deployment; don't run it casually. The scheduler is the cron triggers plus
+the queue consumer inside the same Worker; there is no GitHub Actions worker.
+
+**Free-plan limits shape the code:** 10 ms CPU per request or cron (no
+`cpu_ms` setting), **50 D1 queries per invocation** (the code budgets 45), 50
+subrequests, 100,000 requests a day, and 5 cron triggers per account.
+Production uses three, so staging has none. Moving to Workers Paid is the
+`PLAN` var in `api/wrangler.jsonc` plus the steps in
+`api/docs/rewrite/CUTOVER.md`.
+
+**Staging:** Worker `pacestreak-api-staging` at
+`pacestreak-api-staging.alzywelzy.workers.dev`, D1 `pacestreak-staging`, its
+own queues (`pacestreak-jobs-staging`, `-dlq`) and buckets, console mail, no
+crons. Deploy with `--env staging`.
+
+**Backups:** D1 Time Travel (7 days on Free) plus a nightly copy into Neon
+Postgres schema `d1_backup` by `api/.github/workflows/backup.yml`. Neon is
+used for nothing else.
+
+History: GCP `e2-micro` VM (2026-09-27), FastAPI Cloud with Neon, Upstash and
+an Actions worker (2026-10-11), Workers (2026-10-19). See
+[DECISIONS.md](./DECISIONS.md). Whether the FastAPI Cloud app, the Upstash
+database and the GHCR images have actually been shut down is **unconfirmed**.
 
 ### How `app` got its record
 
@@ -157,7 +181,7 @@ nothing returns `522`, which reads as a broken product.
 | `www.pacestreak.com` | Google Trust Services | Pages-issued, **separate** cert |
 | `blog.pacestreak.com` | Google Trust Services | Pages-issued |
 | `app.pacestreak.com` | Google Trust Services | Pages-issued |
-| `api.pacestreak.com` | Issued for the FastAPI Cloud custom hostname | DNS-validated through the `_acme-challenge.api` CNAME; not Cloudflare's edge certificate |
+| `api.pacestreak.com` | Google Trust Services | Cloudflare edge certificate, issued automatically for the Workers custom domain |
 | `status.pacestreak.com` | Let's Encrypt | GitHub Pages, HTTPS enforced |
 
 Cloudflare Pages issues **one certificate per custom domain**, not one with

@@ -20,8 +20,10 @@ Read it first; this file only adds what is specific to this repository.
 - No secret values, keys or tokens, ever. The Cloudflare token available is
   `zone:read` only; cache purges and Pages settings need the dashboard.
 - The GCP project is deleted (11 October 2026); never recreate a host there.
-  The API is on FastAPI Cloud's free plan, so check its limits before adding
-  anything that would exceed them.
+  The API is a Cloudflare Worker on the Workers **Free** plan (since
+  2026-10-19): 10 ms CPU, 50 D1 queries per invocation, 5 crons per account.
+  Check those limits before documenting anything that would exceed them.
+  `api` deploys by hand with `wrangler`; Workers Builds is not connected.
 
 ## Commits
 

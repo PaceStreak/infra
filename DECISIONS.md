@@ -238,7 +238,9 @@ one in the DNS tab.
 
 ## The API's hosting, revised: FastAPI Cloud, a scheduled worker, Neon, Upstash
 
-**Decided 11 October 2026. Status: implemented.** The API moved from the GCP
+**Decided 11 October 2026. Status: superseded 19 October 2026** by
+[the move to Cloudflare Workers](#the-apis-hosting-revised-again-cloudflare-workers-on-the-free-plan).
+Kept as history. The API moved from the GCP
 `e2-micro` to FastAPI Cloud's free plan (app `pacestreak-api`, region
 us-east-1, custom domain `api.pacestreak.com`).
 
@@ -285,7 +287,9 @@ environment and `WORKER_ENV_JSON`, and must be rotated together.
 
 **Asked 25 September 2026, answered "decide later" for both; hosting resolved
 27 September 2026 (above).** Email was resolved earlier - Brevo, see
-`api/README.md`'s Turnstile section and `HANDOFF.md` §4.
+`api/README.md`'s Turnstile section and `HANDOFF.md` §4. Still true after the
+move to Workers on 19 October 2026: mail is Brevo SMTP; Cloudflare Email
+Service is wired in the code but not onboarded.
 
 ## Waitlist on www: skipped
 
@@ -415,3 +419,49 @@ their own data.
 Plans, plan challenges and coach suggestions only describe what to do.
 Completion is read from the log; a coach's plan starts only when the member
 starts it.
+
+## The API's hosting, revised again: Cloudflare Workers on the Free plan
+
+**Decided 17 October 2026, live 19 October 2026. Status: implemented.**
+Supersedes the FastAPI Cloud entry above. The Python API (FastAPI on FastAPI
+Cloud, Neon Postgres, Upstash Redis, a GitHub Actions worker) was rewritten as
+TypeScript on Cloudflare Workers: Hono, Drizzle and Zod, with D1 `pacestreak`
+(location `apac`), R2 (`pacestreak-photos`, `pacestreak-staging`), the queue
+`pacestreak-jobs` with dead-letter queue `pacestreak-jobs-dlq`, three cron
+triggers and the Rate Limiting binding. The Worker is `pacestreak-api`, on the
+custom domain `api.pacestreak.com` (proxied). The Python code is kept on `api`
+branch `old`; nothing deploys it.
+
+**Why:** one provider instead of several; no scheduled Actions job; no
+scale-to-zero cold starts on 0.1 vCPU; the scheduler, queue and database live
+next to the code. PaceStreak had no users, so nothing had to stay compatible.
+
+**Why Free, not Paid:** the owner's call, "try Free first". The draft plan
+assumed Workers Paid; Free was chosen instead, and the code is sized to it
+(`PLAN` var in `api/wrangler.jsonc`, `src/lib/plan.ts`): 10 ms CPU per
+request, 50 D1 queries per invocation (budgeted at 45), 5 cron triggers per
+account (so staging has none). Moving to Paid ($5/month) is a `PLAN` change
+plus the steps in `api/docs/rewrite/CUTOVER.md`. A cheap plan is never a
+reason to weaken security or hashing.
+
+**What did not change from the draft:**
+
+- **Mail stays Brevo SMTP** (`MAILER=smtp`, 300 a day). Cloudflare Email
+  Service is wired in the code but the domain is not onboarded, so the Brevo
+  DNS records stay.
+- **Deploys are manual.** Workers Builds is not connected: from a clean `main`,
+  `pnpm wrangler d1 migrations apply pacestreak --remote`, then
+  `pnpm wrangler deploy`.
+- **Backups:** D1 Time Travel (7 days on Free) plus a nightly copy into Neon
+  Postgres schema `d1_backup` (`api/.github/workflows/backup.yml`). Neon is
+  kept for that alone.
+
+**Retired:** FastAPI Cloud deploys, the `Worker tick` and `Migrate` workflows,
+and Upstash. Whether the FastAPI Cloud app, the Upstash database and the GHCR
+images have actually been shut down is **unconfirmed** as of 2026-10-21.
+
+**Not chosen:** Workers Paid for now (above); Durable Objects (D1 batches give
+the atomicity needed); KV (rate limits use the binding and a D1 table);
+Hyperdrive to keep Neon as the main database (two providers and a network hop
+for no gain without existing data). Records:
+`api/docs/rewrite/OWNER-DECISIONS.md`, `api/docs/rewrite/DESIGN.md`.
