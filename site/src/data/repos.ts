@@ -260,7 +260,7 @@ export const repos: Repo[] = [
     licence: "AGPL-3.0",
     visibility: "public",
     deploy:
-      "The Markdown is documentation, not automation: nothing is applied. The site in `site/` is meant for a Git-connected Cloudflare Pages project serving docs.pacestreak.com.",
+      "The Markdown is documentation, not automation: nothing is applied. Push to `main`: the Git-connected Cloudflare Pages project `pacestreak-docs` builds `site/` (`npm ci && npm run build`, output `dist`) and serves docs.pacestreak.com.",
     deployKind: "pages",
     ci: [
       "Site: Prettier, astro check, build, check-html.py",
