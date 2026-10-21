@@ -41,6 +41,15 @@ every app email fail DMARC. See [TOPOLOGY.md](./TOPOLOGY.md).
 - [CONTRIBUTING.md](./CONTRIBUTING.md), [SECURITY.md](./SECURITY.md),
   [CHANGELOG.md](./CHANGELOG.md)
 
+## Website
+
+These documents are also published as a website at
+[docs.pacestreak.com](https://docs.pacestreak.com) (not indexed by search
+engines), built from this Markdown by the Astro site in [`site/`](./site).
+The Markdown stays the source: edit it here, and the site follows on the next
+build. The site adds search, a decision index, a runbook failure-mode index, a
+topology diagram, and pages for every PaceStreak repository and the stack.
+
 ## The short version
 
 Four things account for most of the surprises here:
