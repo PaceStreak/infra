@@ -5,6 +5,22 @@ Changes to infrastructure, and to the documentation of it.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Dated rather than versioned — infrastructure is continuously deployed.
 
+## 2026-10-21
+
+### Changed
+
+- **The API is a Cloudflare Worker on the Free plan** (live since
+  2026-10-19). `api.pacestreak.com` is a Workers custom domain; the database
+  is D1, with R2, a job queue and its dead-letter queue, and three cron
+  triggers. Deploys are manual (`wrangler`); Workers Builds is not
+  connected. A staging Worker exists, without crons, because Free allows five
+  per account. `DECISIONS.md` records the move; `TOPOLOGY.md`, `RUNBOOK.md`,
+  `README.md` and `AGENTS.md` describe it.
+
+### Removed
+
+- The unused GitHub secret `WORKER_ENV_JSON` on `PaceStreak/api`.
+
 ## 2026-10-11
 
 ### Changed

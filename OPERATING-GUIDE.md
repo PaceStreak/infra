@@ -322,12 +322,14 @@ or every request fails silently.
 
 Deleting these is permanent:
 
-- **Neon:** the old Postgres project.
+- **Neon:** the old Python-era Postgres project, if it is separate from the
+  one holding the nightly `d1_backup` copy. Don't delete the backup's.
 - **Upstash:** the old Redis database.
 - **GHCR:** the old `api` container images (PaceStreak org → Packages).
 - **FastAPI Cloud:** the `pacestreak-api` app, if it still exists.
-- **GitHub secret** `WORKER_ENV_JSON` on `PaceStreak/api` (old Neon and
-  Upstash credentials).
-- **`/privacy`:** still names Google Cloud, FastAPI Cloud, Neon and
-  Upstash. The proposed replacement is in `api/docs/rewrite/CUTOVER.md`;
-  publishing it means bumping `terms_version` the same day.
+- **DNS:** the TXT record `_cf-custom-hostname.api`, left over from FastAPI
+  Cloud's custom domain. Nothing uses it.
+
+Done on 2026-10-21: the unused GitHub secret `WORKER_ENV_JSON` (old Neon and
+Upstash credentials) is deleted from `PaceStreak/api`. `/privacy` already
+names only Cloudflare, Brevo and Neon.
