@@ -39,7 +39,8 @@ npm run build && python3 check-html.py dist   # dist/ is the Pages output
 npm run check               # astro check
 npm run format:check        # prettier
 npm run lint:md             # markdownlint on the root documents
-npm run freshness           # org repos vs src/data/repos.ts, live URLs
+npm run freshness           # org repos vs src/data/repos.ts, live URLs, openapi.json
+npm run sync:openapi        # refresh the vendored src/data/openapi.json from api main
 ```
 
 - **Broken links fail the build.** Cross-document links (`./RUNBOOK.md#x`)
@@ -63,6 +64,10 @@ npm run freshness           # org repos vs src/data/repos.ts, live URLs
   against the repository and bump `verified` when you change one; CI fails
   when the org gains or loses a repository or a live URL stops answering, and
   warns after 60 days without re-verification.
+- `/api` (the API reference) is rendered at build time from
+  `site/src/data/openapi.json`, a vendored copy of `PaceStreak/api` main's
+  `openapi.json`. Never edit it by hand: `npm run sync:openapi` and commit.
+  `npm run freshness` fails when it drifts from api main.
 - `.github/workflows/site.yml` must be pushed over SSH (`GITHUB_TOKEN` cannot
   write workflows).
 

@@ -5,6 +5,8 @@
 //      and every entry is a repository that exists.            (fails)
 //   2. Every live URL answers 2xx or 3xx.                       (fails)
 //   3. An entry not re-verified for 60 days.                    (warns)
+//   4. src/data/openapi.json matches PaceStreak/api main's
+//      openapi.json (`npm run sync:openapi` refreshes it).       (fails)
 //
 // Needs `gh` authenticated (GITHUB_TOKEN in CI is enough: the repositories
 // are public). Pass --offline to skip the network checks locally.
@@ -12,6 +14,7 @@
 //   node scripts/check-freshness.mjs
 
 import { execFileSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { repos } from "../src/data/repos.ts";
 
 const offline = process.argv.includes("--offline");
@@ -103,6 +106,27 @@ for (const r of repos) {
     warn(
       `${r.name}: facts last verified ${r.verified} (${age} days ago); re-check against the repository and bump \`verified\``,
     );
+}
+
+// 4. The vendored OpenAPI document
+if (!offline) {
+  const url = "https://raw.githubusercontent.com/PaceStreak/api/main/openapi.json";
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+    if (!res.ok) throw new Error(`answered ${res.status}`);
+    const upstream = await res.text();
+    const local = await readFile(
+      new URL("../src/data/openapi.json", import.meta.url),
+      "utf8",
+    );
+    if (upstream === local) console.log("ok   src/data/openapi.json matches api main");
+    else
+      fail(
+        "src/data/openapi.json differs from PaceStreak/api main's openapi.json; run `npm run sync:openapi` and commit",
+      );
+  } catch (e) {
+    fail(`could not compare src/data/openapi.json with api main: ${e.message}`);
+  }
 }
 
 console.log(`\n${errors.length} failure(s), ${warnings.length} warning(s)`);

@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "freshness": "node scripts/check-freshness.mjs",
+    "sync:openapi": "node scripts/sync-openapi.mjs",
     "lint:md": "cd .. && markdownlint-cli2 \"*.md\"",
     "verify": "npm run format:check && npm run check && npm run build && python3 check-html.py dist && npm run lint:md"
   },
