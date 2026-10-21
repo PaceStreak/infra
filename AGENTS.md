@@ -32,6 +32,7 @@ An Astro site that renders the root `*.md` files for `docs.pacestreak.com`.
 A push to `main` deploys it: the Cloudflare Pages project `pacestreak-docs`
 is Git-connected (root `site`, build `npm run build`, output `dist`). Pushes
 to other branches get preview deployments.
+
 It reads them in place (content collection, glob loader, base `..`), so the
 Markdown is the only source: edit the Markdown, never a copy.
 

@@ -81,7 +81,9 @@ if (!offline) {
         try {
           const res = await fetch(r.url, {
             redirect: "manual",
-            headers: { "User-Agent": "PaceStreak docs freshness check" },
+            // Same user agent as Upptime (status/.upptimerc.yml): from GitHub's
+            // runners, Cloudflare's bot protection answers 403 to anything else.
+            headers: { "User-Agent": "PaceStreak" },
             signal: AbortSignal.timeout(20000),
           });
           if (res.status >= 200 && res.status < 400)
