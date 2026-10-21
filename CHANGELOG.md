@@ -12,8 +12,8 @@ Dated rather than versioned — infrastructure is continuously deployed.
 - **The API is a Cloudflare Worker on the Free plan** (live since
   2026-10-19). `api.pacestreak.com` is a Workers custom domain; the database
   is D1, with R2, a job queue and its dead-letter queue, and three cron
-  triggers. Deploys are manual (`wrangler`); Workers Builds is not
-  connected. A staging Worker exists, without crons, because Free allows five
+  triggers. Workers Builds deploys on push to `main`; on 2026-10-21 its
+  deploy command gained the migration step. A staging Worker exists, without crons, because Free allows five
   per account. `DECISIONS.md` records the move; `TOPOLOGY.md`, `RUNBOOK.md`,
   `README.md` and `AGENTS.md` describe it.
 

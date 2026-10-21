@@ -23,7 +23,7 @@ Read it first; this file only adds what is specific to this repository.
   The API is a Cloudflare Worker on the Workers **Free** plan (since
   2026-10-19): 10 ms CPU, 50 D1 queries per invocation, 5 crons per account.
   Check those limits before documenting anything that would exceed them.
-  `api` deploys by hand with `wrangler`; Workers Builds is not connected.
+  `api` deploys through Workers Builds on push to `main`, migrations first.
 
 ## Commits
 

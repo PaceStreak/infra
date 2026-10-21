@@ -167,10 +167,11 @@ each job. Then check, in order:
 **Symptom:** a change merged to `api` `main`, CI is green, but the live API
 behaves as before.
 
-**Cause:** almost always that nobody deployed. **Workers Builds is not
-connected**, so a push to `main` deploys nothing.
+**Cause:** the Workers Builds run failed or is still running (Workers &
+Pages → `pacestreak-api` → Deployments shows each build and its log), or the
+migration step failed and stopped the deploy.
 
-**Fix:** from a clean `api` `main`:
+**Fix:** read the build log first. To deploy by hand from a clean `api` `main`:
 
 ```bash
 pnpm wrangler deployments list                         # what is live, and when

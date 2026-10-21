@@ -134,10 +134,10 @@ proxied record and the certificate when it attached the route to a running
 Worker. Unlike the old DNS-only CNAME, `dig +short api.pacestreak.com` shows
 Cloudflare's anycast IPs and the API sits behind Cloudflare's edge.
 
-**Deploys are manual.** Workers Builds is not connected, so pushing `api`
-`main` deploys nothing. From a clean `main`:
-`pnpm wrangler d1 migrations apply pacestreak --remote`, then
-`pnpm wrangler deploy`. `wrangler triggers deploy` also counts as a production
+**Deploys:** Workers Builds, on every push to `api` `main`: build
+`pnpm run build`, then deploy `pnpm wrangler d1 migrations apply pacestreak --remote && pnpm wrangler deploy`. Migrations land
+before the code (that step was added 2026-10-21; before it, migrations were
+applied by hand). Staging is deployed by hand with `--env staging`. `wrangler triggers deploy` also counts as a production
 deployment; don't run it casually. The scheduler is the cron triggers plus
 the queue consumer inside the same Worker; there is no GitHub Actions worker.
 

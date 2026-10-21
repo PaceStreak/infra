@@ -449,9 +449,9 @@ reason to weaken security or hashing.
 - **Mail stays Brevo SMTP** (`MAILER=smtp`, 300 a day). Cloudflare Email
   Service is wired in the code but the domain is not onboarded, so the Brevo
   DNS records stay.
-- **Deploys are manual.** Workers Builds is not connected: from a clean `main`,
-  `pnpm wrangler d1 migrations apply pacestreak --remote`, then
-  `pnpm wrangler deploy`.
+- **Deploys:** Workers Builds on push to `main`, with the deploy command
+  `pnpm wrangler d1 migrations apply pacestreak --remote && pnpm wrangler deploy` since
+  2026-10-21 (before that it was `npx wrangler deploy`, without migrations).
 - **Backups:** D1 Time Travel (7 days on Free) plus a nightly copy into Neon
   Postgres schema `d1_backup` (`api/.github/workflows/backup.yml`). Neon is
   kept for that alone.
