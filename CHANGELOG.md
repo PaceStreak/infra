@@ -42,14 +42,6 @@ Dated rather than versioned — infrastructure is continuously deployed.
   and commit messages cleaned of tool-generated trailers; the root repo's
   submodule pins were remapped so every historical pin still resolves.
 
-### Fixed
-
-- **App deep links redirected to Today.** The SPA rewrite target was
-  `/index.html`, which Pages turns into a 308 to `/`. Now `/`; checked on a
-  preview branch before merging. Runbook entry added.
-
-### Changed
-
 - Page routes on `www`, `blog` and `app` send `Cache-Control: no-transform`
   so the zone's Web Analytics beacon is no longer injected (the CSP blocked it
   and every page logged an error). Lighthouse is 100 on every desktop
@@ -64,6 +56,12 @@ Dated rather than versioned — infrastructure is continuously deployed.
 - `blog`: `fflate` pinned to 0.8.3 by an npm override instead of npm's
   suggested fix, which would have downgraded `satori`. `web`: `npm audit fix`
   cleared the `devalue` and `undici` advisories.
+
+### Fixed
+
+- **App deep links redirected to Today.** The SPA rewrite target was
+  `/index.html`, which Pages turns into a 308 to `/`. Now `/`; checked on a
+  preview branch before merging. Runbook entry added.
 
 ### Documented
 
