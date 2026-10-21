@@ -82,3 +82,21 @@ waiting to happen.
 
 The trigger to change this: **a second environment**, or the first time
 something is changed in the dashboard and nobody can say when or why.
+
+<!-- where-everything-lives:start -->
+## Where everything lives
+
+PaceStreak is several repositories that deploy separately. The
+[docs site](https://docs.pacestreak.com) describes all of them, their
+topology and the runbook.
+
+| What | Live | Repository |
+| --- | --- | --- |
+| Marketing site | [www.pacestreak.com](https://www.pacestreak.com) | [`web`](https://github.com/PaceStreak/web) |
+| The app | [app.pacestreak.com](https://app.pacestreak.com) | [`app`](https://github.com/PaceStreak/app) |
+| The API | [api.pacestreak.com](https://api.pacestreak.com/health) | [`api`](https://github.com/PaceStreak/api) |
+| Blog | [blog.pacestreak.com](https://blog.pacestreak.com) | [`blog`](https://github.com/PaceStreak/blog) |
+| Status | [status.pacestreak.com](https://status.pacestreak.com) | [`status`](https://github.com/PaceStreak/status) |
+| Docs and infrastructure | [docs.pacestreak.com](https://docs.pacestreak.com) | [`infra`](https://github.com/PaceStreak/infra) |
+| Org profile and health files | [github.com/PaceStreak](https://github.com/PaceStreak) | [`.github`](https://github.com/PaceStreak/.github) |
+<!-- where-everything-lives:end -->

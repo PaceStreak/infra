@@ -254,7 +254,7 @@ export const repos: Repo[] = [
     summary:
       "DNS, Cloudflare configuration, deployment topology and runbooks, as Markdown, plus this documentation site, built from that Markdown.",
     url: "https://docs.pacestreak.com",
-    live: false,
+    live: true,
     stack: ["Markdown", "Astro 7", "Tailwind CSS v4", "Shiki"],
     branch: "main",
     licence: "AGPL-3.0",
