@@ -160,7 +160,7 @@ export const repos: Repo[] = [
     slug: "api",
     title: "API",
     summary:
-      "The backend at api.pacestreak.com: about 265 routes under /v1, a scheduler and a job queue, in one Cloudflare Worker on the Workers Free plan.",
+      "The backend at api.pacestreak.com: 272 routes under /v1, a scheduler and a job queue, in one Cloudflare Worker on the Workers Free plan.",
     url: "https://api.pacestreak.com/health",
     stack: [
       "TypeScript 7",
